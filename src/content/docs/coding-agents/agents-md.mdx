@@ -1,0 +1,144 @@
+---
+title: "AGENTS.md 작성법"
+description: "레포의 실제 명령과 제약을 조사해 100줄 안팎의 AGENTS.md를 쓰는 법. 넣을 것·뺄 것·설정으로 강제할 것"
+reviewedAt: 2026-09-20
+status: stable
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+import Thesis from '../../../components/docs/Thesis.astro';
+import TermIntro from '../../../components/docs/TermIntro.astro';
+
+<Thesis>`AGENTS.md`는 100줄 안팎의 지도다. 명령·제약·읽기 조건·검증·허용 범위만 적고, 설명은 문서 링크로 대신한다</Thesis>
+
+이 페이지는 **AGENTS.md에 무엇을 적고 무엇을 빼는가**에 답한다.
+파일 위치와 역할은 [레포 구조](/coding-agents/repository-layout/)에서 정했고,
+두 도구가 이 파일을 언제 어디까지 읽는지는 [지침 로딩](/coding-agents/instruction-loading/)에서 다룬다.
+
+<TermIntro terms={[["AGENTS.md", "", "Codex·Claude Code를 비롯한 여러 코딩 에이전트가 프로젝트 지침으로 읽는 파일. 레포 루트에 두면 세션 시작 때 자동으로 컨텍스트에 들어간다."], ["hook", "", "에이전트가 도구를 실행하기 전후에 자동으로 도는 스크립트. 모델의 판단과 무관하게 행동을 막거나 검사를 강제할 때 쓴다."]]} />
+
+## 먼저 레포의 사실을 조사한다
+
+템플릿부터 복사하면 없는 명령과 없는 문서가 지침에 들어간다. README·빌드 설정·CI·기존 지침을
+대조해 다음을 찾고, 확인하지 못한 항목은 지침에 넣지 않는다.
+
+| 찾을 것 | 지침에 남길 내용 |
+|---|---|
+| 설치·실행·검사 명령과 실행 위치 | 실제로 쓰는 명령, 변경 종류별 검사 범위 |
+| 구조와 변경 경계 | 진입점, 생성 파일, 지켜야 할 의존 방향 |
+| 기존 문서 | 요구·설계·검증·계획의 정본 경로 |
+| 외부 상태를 바꾸는 작업 | 허용된 로컬 작업과 확인이 필요한 행동 |
+
+CI가 `pnpm test`를 돌리는 레포에 익숙하다는 이유로 `npm test`를 적지 않는다.
+
+## 다섯 가지만 적는다
+
+| 항목 | 답하는 질문 | 예 |
+|---|---|---|
+| 명령 | 무엇으로 설치·실행·검사하는가 | `pnpm test`, `pnpm --filter api test` |
+| 제약 | 무엇을 건드리지 않는가 | 생성 파일 직접 수정 금지, 마이그레이션 폴더 보호 |
+| 읽기 조건 | 어떤 작업이면 어느 문서를 읽는가 | 스키마 변경이면 `docs/design-docs/database.md` |
+| 검증 | 어떤 변경에 어떤 검사를 돌리는가 | `docs/verification.md`로 연결 |
+| 허용 범위 | 묻지 않고 해도 되는 일과 물어야 하는 일 | 로컬 구현·검증은 진행, 커밋·푸시는 요청 시 |
+
+이 다섯 가지가 있으면 에이전트는 "어떻게 검사하지", "이 폴더를 고쳐도 되나", "어디를 더 읽지"를
+추측하지 않는다. 그 밖의 내용은 대부분 설명이고, 설명은 아래에서 뺀다.
+
+## 예시 AGENTS.md
+
+가상 업무 서비스 레포의 예시다. 명령과 경로는 실제 레포의 값으로 바꾼다.
+
+```md title="AGENTS.md"
+# AGENTS.md
+
+업무 관리 서비스. pnpm workspace, apps/web(Next.js)·apps/api(Fastify)·packages/db(Prisma).
+
+## 명령
+
+- 설치: pnpm install
+- 실행: pnpm dev (web 3000, api 4000)
+- 검사: docs/verification.md의 변경별 범위를 따른다. 전체 검사는 pnpm check.
+
+## 제약
+
+- packages/db/generated/는 생성 파일이다. 스키마를 고치고 pnpm db:generate로 다시 만든다.
+- apps/web에서 apps/api 내부 모듈을 직접 import하지 않는다. packages/contracts의 타입만 쓴다.
+- .env·배포 설정은 읽되 수정하지 않는다.
+
+## 작업에 맞춰 읽을 것
+
+- 기능을 만들거나 바꿀 때: docs/product-specs/의 해당 스펙
+- 서비스 경계나 의존 방향을 바꿀 때: docs/design-docs/architecture.md
+- DB 스키마를 바꿀 때: docs/design-docs/database.md
+- 여러 세션에 걸칠 작업: docs/exec-plans/README.md. 진행 중 계획은 active/에 있다.
+- 수정 대상 경로에 아직 읽지 않은 하위 AGENTS.md가 있으면 수정 전에 읽는다.
+
+## 작업 방식
+
+- 요청 범위의 구현·검증·이번 변경으로 생긴 오류 수정까지 마친다.
+- 범위 안의 일상적인 구현 선택은 진행한다. 요구 변경과 외부 쓰기는 먼저 확인한다.
+- 필수 검사가 통과하면 끝낸다. 새 변경·실패가 있을 때만 영향을 받은 검사를 다시 한다.
+- 커밋·푸시·배포는 요청받았을 때만 한다.
+```
+
+40줄이 안 된다. 여기서 더 길어진다면 대개 설명이 들어온 것이다.
+
+## 넣지 않는 것
+
+| 넣지 않는 것 | 대신 |
+|---|---|
+| 아키텍처·도메인 설명 | `design-docs/`에 두고 읽을 조건과 함께 링크 |
+| "항상 모든 문서를 읽어라" | 작업 조건별 읽기 목록. 오타 수정에 DB 문서를 읽을 이유는 없다 |
+| 과거 실수를 막으려 넣은 단계별 레시피 | 완료 조건만 적고 방법은 맡긴다. 필요한 절차는 skill이나 검증 문서로 |
+| CLAUDE.md 같은 도구별 파일에 복제한 같은 규칙 | AGENTS.md 한 곳에만 둔다. 도구별 파일은 두지 않는다 |
+| 이미 자동 로드된 지침을 매 요청 다시 읽으라는 문장 | 없앤다. 컨텍스트에 이미 있다 |
+
+Claude Code 공식 문서는 파일당 200줄 아래를 권하고, 길어지면 준수율이 떨어진다고 설명한다
+([CLAUDE.md 작성 안내](https://code.claude.com/docs/en/memory#claude-md-files)). Codex는 루트부터
+작업 디렉터리까지의 지침을 합쳐 기본 32 KiB까지만 읽는다
+([Codex AGENTS.md 문서](https://learn.chatgpt.com/docs/agent-configuration/agents-md)).
+두 제한 모두 짧을수록 유리하다는 뜻이다.
+
+## 지침은 권고이고 강제는 설정이 맡는다
+
+AGENTS.md의 문장은 모델이 읽고 따르는 맥락이지 실행을 막는 설정이 아니다. Claude Code
+문서는 이를 "context, not enforced configuration"이라고 쓰고, 반드시 막을 행동에는 hook을
+쓰라고 안내한다([CLAUDE.md vs auto memory](https://code.claude.com/docs/en/memory#claude-md-vs-auto-memory)).
+
+| 목적 | 지침에 쓸 것 | 설정으로 강제할 것 |
+|---|---|---|
+| 마이그레이션·배포 파일 보호 | 왜 건드리지 않는지와 예외 절차 | Claude Code PreToolUse hook, Codex sandbox 쓰기 범위 |
+| 외부 네트워크·배포 명령 | 허용 범위와 확인이 필요한 경우 | 권한 allowlist, 승인 정책 |
+| 검사 통과 전 종료 금지 | 어떤 검사가 완료 조건인지 | Stop hook 또는 CI |
+
+Claude Code는 [hooks](https://code.claude.com/docs/en/hooks-guide)와 권한 설정으로,
+Codex는 [sandbox](https://learn.chatgpt.com/docs/sandboxing)와
+[승인 정책](https://learn.chatgpt.com/docs/agent-approvals-security)으로 경계를 둔다.
+설정 형식은 도구마다 다르므로 각자 설정하고, AGENTS.md에는 경계가 있다는 사실과 예외 절차만 적는다.
+
+## 고친 뒤에는 작은 작업으로 비교한다
+
+줄 수가 줄었다고 개선이 아니다. 오타 수정·작은 기능 추가·기존 계획 재개 중 하나를 골라
+같은 시작 상태에서 두 도구를 돌리고, **요구를 놓쳤는지, 불필요하게 멈췄는지, 관련 없는 문서를
+읽거나 검사를 반복했는지**를 본다. 세 가지가 줄었으면 개선이다.
+
+기존 레포의 지침을 손볼 때 쓸 요청이다.
+
+```text
+이 레포에서 Codex와 Claude Code를 함께 쓰기 좋게 AGENTS.md를 개선해 줘.
+README·빌드 설정·CI·기존 지침을 대조해 실제 명령과 문서 정본을 확인해 줘.
+중복·충돌·없는 경로·조건 없는 읽기 지시·과도한 승인 문구를 찾아 고쳐 줘.
+프로젝트 제약은 보존하고, 변경별 검증 범위와 허용된 작업 범위를 분명히 해 줘.
+확인한 근거와 확인하지 못한 환경 조건을 구분해 보고해 줘.
+```
+
+## 이해 확인
+
+검사 명령이 바뀌었다. 어디를 고칠까? `docs/verification.md`와 그 명령을 부르는 스크립트를
+맞춘다. AGENTS.md는 검증 문서를 가리키기만 하므로 손댈 것이 없고, 다른 지침 파일에 복제한 명령이
+있다면 그것이 문제다.
+
+"마이그레이션 폴더 수정 금지"를 AGENTS.md에 적었다. 충분할까? 따를 가능성이 높아질 뿐이다.
+어긋나면 안 되는 경계라면 hook이나 sandbox로도 막고, 지침에는 예외 절차를 남긴다.
+
+<LinkCard title="지침 로딩" description="CLAUDE.md 없이 AGENTS.md 하나만 두고, 두 도구가 어느 파일을 언제 읽는지 확인한다." href="/coding-agents/instruction-loading/" />

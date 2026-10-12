@@ -1,0 +1,92 @@
+---
+import Default from '@astrojs/starlight/components/MarkdownContent.astro';
+import ImageZoom from 'starlight-image-zoom/components/ImageZoom.astro';
+import { deckDefinitions } from '../../data/decks.mjs';
+
+// 헤더 검색(Pagefind) 결과에 "덱: <이름>"을 표시하기 위한 커스텀 meta.
+// meta는 <main data-pagefind-body> 안에 있어야 수집되는데, 본문 안쪽의
+// 첫 공통 진입점이 이 컴포넌트라 여기서 심는다. 라벨은 topics 플러그인의
+// 라우트 데이터에서 오므로 파생된 deck topic label과 항상 일치한다.
+// 랜딩처럼 topic 밖 페이지는 isCurrent가 없어 meta 없이 렌더된다.
+// 결과 카드에서의 표시 위치·모양은 src/styles/custom.css 참고.
+// 이 override가 있으면 starlight-image-zoom이 자체 MarkdownContent override를 설치하지 않으므로
+// ImageZoom 런타임도 여기서 함께 렌더한다.
+// 소개 연월은 frontmatter의 introduced에서 읽고 검토 기록보다 먼저 표시한다.
+const topic = Astro.locals.starlightSidebarTopics?.topics.find((t) => t.isCurrent);
+const { entry } = Astro.locals.starlightRoute;
+const data = entry.data as typeof entry.data & {
+	aliases?: string[];
+	introduced?: { month: string; event: string; source: string };
+	reviewedAt?: Date;
+	status?: 'unreviewed' | 'stable' | 'review' | 'stale';
+};
+const deck = deckDefinitions.find((candidate) => candidate.slug === entry.id);
+const aliases = [...new Set([...(deck?.aliases ?? []), ...(data.aliases ?? [])])];
+const introduced = data.introduced;
+const introducedLabel = introduced
+	? `${introduced.month.slice(0, 4)}년 ${Number(introduced.month.slice(5))}월`
+	: undefined;
+// 랜딩처럼 topic 밖에 있는 표지는 콘텐츠 현재성 대상이 아니다.
+const status = topic ? (data.status ?? (data.reviewedAt ? 'stable' : 'unreviewed')) : undefined;
+// 검토 기록 누락은 report:content에서 관리하고, 본문에는 명시적인 경고만 표시한다.
+const statusLabel =
+	status === 'review'
+		? '검토 필요'
+		: status === 'stale'
+			? '오래된 내용'
+			: undefined;
+const reviewedAt = data.reviewedAt?.toLocaleDateString('ko-KR', {
+	year: 'numeric',
+	month: '2-digit',
+	day: '2-digit',
+});
+---
+
+<ImageZoom />
+{topic && <span data-pagefind-meta={`덱:${topic.label}`} hidden></span>}
+{
+	introduced && (
+		<p class="content-introduced">
+			<strong>소개 시점: <time datetime={introduced.month}>{introducedLabel}</time></strong>
+			{' · '}<a href={introduced.source}>{introduced.event}</a>
+		</p>
+	)
+}
+{
+	(aliases.length > 0 || reviewedAt || statusLabel) && (
+		<p class="content-meta">
+			{aliases.length > 0 && <span>다른 이름: {aliases.join(' · ')}</span>}
+			{reviewedAt && <span>내용 검토: {reviewedAt}</span>}
+			{statusLabel && <span class:list={['content-status', `content-status--${status}`]}>{statusLabel}</span>}
+		</p>
+	)
+}
+<Default><slot /></Default>
+
+<style>
+	.content-introduced {
+		margin: 0 0 0.5rem;
+		font-size: var(--sl-text-sm);
+	}
+
+	.content-meta {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem 0.9rem;
+		margin: 0 0 1rem;
+		font-size: var(--sl-text-xs);
+		color: var(--sl-color-gray-3);
+	}
+
+	.content-status {
+		font-weight: 700;
+	}
+
+	.content-status--review {
+		color: var(--sl-color-orange-high, #d97706);
+	}
+
+	.content-status--stale {
+		color: var(--sl-color-red-high, #dc2626);
+	}
+</style>

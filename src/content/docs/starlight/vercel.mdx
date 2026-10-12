@@ -1,0 +1,124 @@
+---
+title: "Vercel로 배포하기"
+description: "Astro 자동 감지로 배포하고, 빌드 환경·대표 주소·Git 이력에 따른 수정일 표시를 확인한다"
+reviewedAt: 2026-09-30
+status: stable
+---
+
+import { LinkCard, Steps } from '@astrojs/starlight/components';
+import Thesis from '../../../components/docs/Thesis.astro';
+import TermIntro from '../../../components/docs/TermIntro.astro';
+
+<Thesis>
+
+- Vercel은 Astro 정적 사이트를 감지해 배포한다. 이 사이트의 정적 파일 제공에는 서버용 어댑터가 필요 없다.
+- 빌드 명령·Node 버전·대표 주소를 확인하고, 공개 결과에서 본문과 검색을 점검한다.
+- 얕은 Git 복제 때문에 덱의 수정일이 부정확할 수 있다. 현재 이력 보완 스크립트는 Cloudflare Pages에서만 동작한다.
+
+</Thesis>
+
+브랜치마다 미리보기 주소가 생기는 것을 원하고 GitHub 밖 서비스 계정을 하나 더 만들 수 있다면
+Vercel의 Git 연동을 사용할 수 있다. 이 페이지는 **자동 감지가 어디까지 해 주고 무엇이 남는가**에 답한다.
+[웹으로 공유하기](/starlight/publishing/)에서 로컬 확인과 공개 배포의 차이를 먼저 볼 수 있다.
+
+<TermIntro terms={[
+  ['Preview Deployment', '', '프로덕션 브랜치가 아닌 브랜치를 푸시할 때마다 생기는 별도 주소의 배포. 합치기 전에 결과를 본다.'],
+  ['얕은 복제', 'Shallow Clone', '최근 커밋 몇 개만 받는 git clone. 빌드는 빨라지지만 오래된 커밋의 날짜 정보가 없다.'],
+]} />
+
+## 대시보드에서 저장소를 가져온다
+
+[Astro 공식 Vercel 안내](https://docs.astro.build/en/guides/deploy/vercel/)대로 정적 사이트에는
+어댑터가 필요 없다. 이 저장소에는 `@astrojs/vercel`을 넣지 않는다.
+
+<Steps>
+
+1. [Vercel 대시보드](https://vercel.com/new)에서 **Add New → Project**를 고르고 GitHub 저장소를 선택한다.
+
+2. Framework Preset이 **Astro**인지 확인하고, 이 저장소의 빌드 설정을 대조한다.
+
+   | 항목 | 확인할 값 |
+   |---|---|
+   | Root Directory | 저장소 루트 |
+   | Build Command | `npm run build` |
+   | Output Directory | `dist` |
+   | Production Branch | `main` |
+
+   배포 전 `src/config/site.mjs`의 `site`도 사용할 프로덕션 주소로 맞춘다.
+
+3. **Deploy**를 누른다. 끝나면 `<프로젝트>.vercel.app` 주소가 생기고, 이후 `main` 푸시는 프로덕션,
+   다른 브랜치 푸시는 Preview로 배포된다.
+
+</Steps>
+
+<span id="패키지-관리자와-node-버전은-자동-감지에-맡긴다" />
+
+## 패키지 관리자와 Node 버전을 확인한다
+
+[Vercel 문서](https://vercel.com/docs/package-managers)에 따르면 Vercel은 저장소의 lockfile을
+보고 패키지 관리자를 고른다. 이 저장소에는 `package-lock.json`이 있으므로 `npm install`을 쓴다.
+npm은 sharp·esbuild 같은 의존성의 설치 스크립트를 기본으로 실행하므로 별도 허용 설정도 없다.
+
+현재 `package.json`의 `engines.node`는 `>=24`다.
+[Vercel의 Node 버전 선택 규칙](https://vercel.com/docs/functions/runtimes/node-js/node-js-versions)에 따라
+지원 범위 안의 버전을 선택하므로, `>=24`가 영구적으로 24.x에 고정된다는 뜻은 아니다.
+로컬의 `.nvmrc`와 같은 메이저 버전이 필요하면 배포 준비 시 `engines.node`도 `24.x`로 맞춘다.
+첫 빌드 로그에서 선택된 버전을 확인한다.
+
+## 랜딩의 수정일이 어긋날 수 있다
+
+[Vercel 빌드 문서](https://vercel.com/docs/builds/configure-a-build)에 따르면 Git 연동 빌드는
+저장소를 `--depth=10`으로 얕게 복제한다. 랜딩 카드의 "마지막 수정"은 각 덱 폴더의
+최신 커밋일을 git log에서 읽으므로, 최근 10개 커밋 안에서 안 바뀐 덱은 모두 같은 경계 날짜로 표시된다.
+
+저장소의 `scripts/prepare-git-history.mjs`는 `CF_PAGES=1`일 때만 전체 이력을 받는다.
+Vercel에서도 같은 처리를 하려면 그 스크립트가 `VERCEL=1`도 인식하도록 고쳐야 하고, 이 변경은
+아직 하지 않았다. 사이트가 열려도 날짜가 정확하다는 뜻은 아니므로 배포 완료 확인에 수정일 점검을 포함한다.
+
+## 주소와 site를 맞춘다
+
+프로젝트 **Settings → Domains**에서 커스텀 도메인을 붙일 수 있다. 어느 주소를 대표로 쓰든
+`src/config/site.mjs`의 `site`를 그 주소로 바꿔야 canonical과 sitemap이 맞는다.
+
+아래는 대표 주소 기본값을 바꾸는 발췌다. 도메인 루트 배포라면 같은 파일의 base 기본값은 `/`로 둔다.
+
+```js title="src/config/site.mjs — site 설정 발췌"
+export const site = process.env.SITE_URL || 'https://<프로젝트>.vercel.app';
+```
+
+배포 뒤 확인은 GitHub Pages와 같다.
+
+```bash
+curl -s 'https://YOUR-PROJECT.vercel.app/starlight/intro/' | grep -o '<link rel="canonical"[^>]*>'
+```
+
+`YOUR-PROJECT`는 실제 프로젝트 이름으로 바꾼다. 본문·D2 이미지·검색이 열리고, canonical이
+대표 주소를 가리키며, 덱마다 수정일이 실제 이력과 맞는지 확인한다.
+
+## CLI로 올리고 싶을 때
+
+CLI 로그인과 프로젝트 연결을 마친 뒤 저장소 루트에서 Preview 배포를 만들 수 있다. 설치 방법은
+[Vercel CLI 문서](https://vercel.com/docs/cli)를 따르고 본문에 복사하지 않는다.
+
+```bash
+vercel
+```
+
+기본 `vercel`은 Preview 배포다. 프로덕션 게시를 의도할 때는 `vercel --prod`를 쓴다.
+로컬 파일을 보내도 빌드는 원격에서 수행될 수 있으므로, 로컬의 전체 `.git` 이력이 그대로 전달된다고
+가정하지 않는다. 수정일은 별도로 확인한다. CLI 실행만으로 Git 푸시 자동 배포가 연결되지는 않는다.
+
+## 확인할 제한
+
+- lockfile 기반 npm 감지는 2026-09-30 공식 문서로 확인했고 실제 Vercel 배포로 실측하지 않았다.
+  첫 빌드 로그에서 설치 단계가 `npm install`인지 본다.
+- 조직·비공개 저장소의 연결 조건은 [Vercel Git 연동 안내](https://vercel.com/docs/git)에 따라 계정·팀 권한을 확인한다.
+- Preview 배포는 기본으로 검색엔진 색인에서 제외된다. 프로덕션 주소만 `site`에 넣는다.
+
+## 이해 확인
+
+배포는 성공했는데 랜딩의 거의 모든 덱이 최근 날짜 하나로 뭉쳐 보인다. 무엇부터 볼까?
+얕은 복제가 원인이다. depth 10 안에서 안 바뀐 덱은 경계 날짜로 뭉개진다. 이건 빌드 실패가
+아니라 표시 문제이므로, 수정일이 중요하면 위의 스크립트 변경을 먼저 해야 한다.
+
+<LinkCard title="Cloudflare Pages로 배포하기" description="이 저장소가 실제로 쓰는 경로. 빌드 설정과 저장소가 처리하는 준비 작업을 확인한다." href="/starlight/cloudflare-pages/" />

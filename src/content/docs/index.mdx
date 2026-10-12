@@ -1,0 +1,10 @@
+---
+title: Study Note
+description: 주제별 기술 스터디 노트 — 검색하고, 찾아보고, 다시 읽는 자료
+template: splash
+---
+
+import DeckCatalog from '../../components/docs/DeckCatalog.astro';
+import { deckCatalogSections, deckTagFacets } from '../../data/decks.mjs';
+
+<DeckCatalog sections={deckCatalogSections} facets={deckTagFacets} />

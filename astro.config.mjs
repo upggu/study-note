@@ -1,0 +1,67 @@
+// @ts-check
+import path from 'node:path';
+import { defineConfig } from 'astro/config';
+import { unified } from '@astrojs/markdown-remark';
+import starlight from '@astrojs/starlight';
+import starlightSidebarTopics from 'starlight-sidebar-topics';
+import starlightThemeRapide from 'starlight-theme-rapide';
+import starlightImageZoom from 'starlight-image-zoom';
+import astroD2 from 'astro-d2';
+import { prepareD2 } from './scripts/prepare-d2.mjs';
+import { topics } from './src/data/decks.mjs';
+import { site, base } from './src/config/site.mjs';
+import sitePaths from './src/integrations/site-paths.mjs';
+
+// dev/build/check 어느 진입점에서도 고정된 native D2를 먼저 준비한다.
+const d2BinDirectory = await prepareD2();
+const currentPath = process.env.PATH?.split(path.delimiter).filter(Boolean) ?? [];
+process.env.PATH = [d2BinDirectory, ...currentPath.filter((entry) => entry !== d2BinDirectory)].join(
+	path.delimiter,
+);
+
+export default defineConfig({
+	// 대표 주소와 게시 경로는 src/config/site.mjs가 소유한다. canonical 링크와 sitemap의 기준이므로
+	// 배포 전에 그 파일의 site 기본값을 실제 대표 주소로 바꾼다.
+	site,
+	base,
+	// starlight-image-zoom 0.15는 Astro 7의 Sätteri를 아직 지원하지 않는다.
+	markdown: { processor: unified() },
+	integrations: [
+		sitePaths(),
+		// 다이어그램 integration은 starlight보다 먼저 와야 D2 코드 펜스를 가로챈다.
+		astroD2({
+			layout: 'elk',
+			pad: 40,
+			theme: { default: '0', dark: '200' },
+		}),
+		starlight({
+			title: 'Study Note',
+			routeMiddleware: './src/route-middleware.ts',
+			defaultLocale: 'root',
+			locales: {
+				root: { label: '한국어', lang: 'ko' },
+			},
+			customCss: [
+				// 한글 폰트 — dynamic subset이라 페이지에 쓰인 글자의 조각만 내려받는다.
+				'pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css',
+				'./src/styles/custom.css',
+			],
+			components: {
+				// 검색 결과에 덱 이름을 표시하기 위한 Pagefind meta 주입 — 파일 안 주석 참고.
+				MarkdownContent: './src/components/layout/MarkdownContent.astro',
+				// 덱 목록을 드롭다운으로 접는다.
+				Sidebar: './src/components/layout/Sidebar.astro',
+				// 헤더에 "[사이드바 토글] Study Note / <현재 덱>".
+				SiteTitle: './src/components/layout/SiteTitle.astro',
+			},
+			plugins: [
+				starlightImageZoom(),
+				starlightThemeRapide(),
+				starlightSidebarTopics(topics, {
+					// 랜딩 페이지는 어느 topic에도 속하지 않는다.
+					exclude: ['/'],
+				}),
+			],
+		}),
+	],
+});

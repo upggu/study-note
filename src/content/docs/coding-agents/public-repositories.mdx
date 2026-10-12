@@ -1,0 +1,69 @@
+---
+title: "공개 레포의 배치 비교"
+description: "스펙·계획을 두는 세 갈래(층별 폴더·기능별 폴더·없음)와 tldraw·VS Code·Codex 등 실제 레포의 선택"
+reviewedAt: 2026-09-20
+status: stable
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+import Thesis from '../../../components/docs/Thesis.astro';
+import TermIntro from '../../../components/docs/TermIntro.astro';
+
+<Thesis>공개 레포의 형식을 통째로 복사하지 말고, 이 덱의 추천 구조가 세 갈래 중 어디에 있는지 알고 고른다</Thesis>
+
+[레포 구조](/coding-agents/repository-layout/)의 추천 배치는 여러 선택지 중 하나다.
+이 페이지는 **다른 배치는 무엇이고 언제 그쪽이 나은가**에 답한다.
+2026-09-20에 확인한 파일을 커밋에 고정해 링크했다.
+
+<TermIntro terms={[["커밋 고정 링크", "Permalink", "특정 시점의 파일을 가리키는 링크. 기본 브랜치가 바뀌어도 관찰한 내용을 다시 확인할 수 있다."]]} />
+
+## 스펙과 계획을 두는 세 갈래
+
+| 갈래 | 사례 | 스펙 | 계획 |
+|---|---|---|---|
+| 층별 폴더 | OpenAI 내부 레포([Harness engineering](https://openai.com/index/harness-engineering/)), 이 덱의 추천 | `docs/product-specs/`, `docs/design-docs/` | `docs/exec-plans/active`·`completed` |
+| 층별 폴더 | [Superpowers](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/brainstorming/SKILL.md) | `docs/superpowers/specs/<날짜>-<주제>-design.md` | `docs/superpowers/plans/<날짜>-<이름>.md` |
+| 기능별 폴더 | [GitHub spec-kit](https://github.com/github/spec-kit/blob/d4229c071c7ea3885b43e8a7739847300f618f13/spec-driven.md) | `specs/<번호>-<기능>/spec.md` | 같은 폴더의 `plan.md`·`tasks.md` |
+| 기능별 폴더 | [Kiro](https://kiro.dev/docs/specs/) | `.kiro/specs/<기능>/requirements.md`·`design.md` | 같은 폴더의 `tasks.md` |
+| 없음 | tldraw·Codex·[ghostty](https://github.com/ghostty-org/ghostty/blob/b32f20f3e8d25bb925ec545c54498e93518e7ced/AGENTS.md)·[opencode](https://github.com/anomalyco/opencode/blob/fee476bb90043a1012abda156dd9af9e5c71b19d/AGENTS.md) | 이슈 또는 없음 | 없음. AGENTS.md와 검증 명령만 |
+
+**층별 폴더**는 요구 정본이 하나라 여러 계획이 같은 요구를 가리킨다. 처음부터 폴더와 ID를
+유지하는 비용이 든다.
+
+**기능별 폴더**는 기능 하나의 스펙·계획·작업이 한 폴더에 닫혀 시작이 쉽고 끝나면 통째로
+보관된다. 요구가 여러 기능에 걸치면 같은 요구가 여러 `spec.md`에 흩어진다. spec-kit은 전체
+원칙을 constitution 파일 하나에, Kiro는 `.kiro/steering/`에 두어 보완한다.
+
+**없음**도 정상이다. ghostty의 AGENTS.md는 빌드·테스트 명령 위주 250단어 정도이고, opencode는
+의존 방향과 코드 스타일 180줄 정도지만 둘 다 계획 문서가 없다. 이슈·PR·대화가 그 역할을
+한다. 세션을 넘겨야 하는 작업이 실제로 얼마나 있는지가 기준이다.
+
+## 실제 레포에서 가져올 것 하나씩
+
+- **tldraw** — [AGENTS.md](https://github.com/tldraw/tldraw/blob/05ba06d341d4fc7212812c30cb80309c011d428a/AGENTS.md)에
+  실제 명령과 변경별 검증 범위를 두고 [CLAUDE.md](https://github.com/tldraw/tldraw/blob/05ba06d341d4fc7212812c30cb80309c011d428a/CLAUDE.md)는
+  `@AGENTS.md` 한 줄이다. Claude Code가 AGENTS.md를 직접 읽기 전에 쓰던 어댑터 구성이다.
+- **VS Code** — Claude 통합 코드 옆의 [Phase 19 계획](https://github.com/microsoft/vscode/blob/d3c24c3c4d7efab36b37acb1e91d9502c0c35b28/src/vs/platform/agentHost/node/claude/phase19-plan.md)은
+  이전 대화 없는 에이전트를 위한 인계 문서임을 밝히고 목표·제외 범위·의존성·실제 검증과 계획에서
+  달라진 점을 남긴다. 계획과 실행 결과를 한 파일에 잇는 방식을 가져온다.
+- **Codex** — [AGENTS.md](https://github.com/openai/codex/blob/78245b47af2a7aafcabe025828ceecca69db4df1/AGENTS.md)는
+  검사 이름을 나열하지 않고 **어떤 변경에 어떤 검사를 돌리는지** 연결한다. 검증 문서를 쓸 때의 기준이다.
+- **Superpowers** — [실행 지침](https://github.com/obra/superpowers/blob/5bf4e78011075bcfc0dc295f0724994cd123ee71/skills/executing-plans/SKILL.md)은
+  계획별 진행 기록을 읽고 완료한 작업을 반복하지 않게 한다. 다만 이 버전의 진행 기록은 Git에서
+  제외된 폴더에 있어 계획 파일만 넘기면 기록이 함께 가지 않는다. 인계에 필요한 상태가 어디 있는지 확인한다.
+
+## 내 레포에서 고른다
+
+| 상황 | 고를 것 |
+|---|---|
+| 같은 요구를 여러 계획이 참조한다 | 층별 폴더 |
+| 기능이 서로 독립적이고 한 번에 닫힌다 | 기능별 폴더 또는 이슈 하나 |
+| 모든 작업이 한 세션에 끝난다 | 없음. AGENTS.md와 검증 문서만 |
+| 이미 잘 돌아가는 배치가 있다 | 바꾸지 않는다. 다음 세션이 같은 상태를 복구할 수 있는지가 기준이다 |
+
+## 이해 확인
+
+기능별 폴더로 시작한 레포에서 세 번째 기능이 첫 기능의 요구를 다시 적고 있다. 어떻게 할까?
+그 요구를 층별 정본으로 한 번 빼고 두 폴더가 ID로 가리키게 한다. 전체 구조를 한 번에 바꿀 필요는 없다.
+
+<LinkCard title="덱 개요로 돌아가기" description="지금 필요한 일에서 다시 시작한다." href="/coding-agents/" />

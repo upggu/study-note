@@ -1,0 +1,50 @@
+---
+title: 개요
+description: Codex와 Claude Code가 같은 기준으로 일하도록 레포의 지침 파일과 스펙·설계·계획 문서를 두고 유지하는 방법
+reviewedAt: 2026-09-23
+status: stable
+---
+
+import { LinkButton } from '@astrojs/starlight/components';
+import DeckMap from '../../../components/docs/DeckMap.astro';
+import Thesis from '../../../components/docs/Thesis.astro';
+
+<Thesis>지침은 `AGENTS.md` 하나에, 지식은 스펙·설계·계획 세 층에 두면 두 도구와 여러 세션이 같은 기준으로 일한다</Thesis>
+
+Codex로 정한 결정을 Claude Code가 모르고, 새 세션이 끝난 작업을 다시 하고, 검사 명령이
+두 파일에 다르게 적혀 있는 문제에서 출발한다. 원인은 같다. **규칙과 결정이 대화에만 남고
+레포에는 없기 때문이다.**
+
+이 덱은 Git과 Markdown을 아는 독자가 자신의 레포에 다음을 갖추는 방법을 다룬다.
+
+- 두 도구가 함께 읽는 지침 파일 `AGENTS.md` 하나
+- 요구를 담는 **스펙**, 규약과 결정을 담는 **설계**, 순서와 현재 상태를 담는 **계획** 문서
+- 요청 → 구현 → 검증 → 인계 → 재개로 이어지는 작업 흐름
+
+설명용 예시는 가상 업무 서비스의 **CSV 내보내기** 기능 하나다. 스펙·설계·계획 페이지가
+같은 예시를 이어 쓰므로 세 문서가 어떻게 연결되는지 따라갈 수 있다.
+
+<LinkButton href="/coding-agents/repository-layout/" icon="right-arrow">레포 구조부터 보기</LinkButton>
+
+## 구성
+
+<DeckMap deck="coding-agents" />
+
+## 지금 필요한 일에서 시작하기
+
+| 지금 필요한 일 | 읽을 곳 |
+|---|---|
+| 레포에 어떤 파일을 둘지 정한다 | [레포 구조](/coding-agents/repository-layout/) |
+| AGENTS.md를 새로 쓰거나 고친다 | [AGENTS.md 작성법](/coding-agents/agents-md/) |
+| Claude Code가 AGENTS.md를 읽는지 확인한다 | [지침 로딩](/coding-agents/instruction-loading/) |
+| 큰 기능의 요구를 정리한다 | [스펙 문서](/coding-agents/product-specs/) |
+| 구현하며 정한 규약을 남긴다 | [설계 문서](/coding-agents/design-docs/) |
+| 여러 세션에 걸칠 작업을 시작한다 | [계획 문서](/coding-agents/exec-plans/) |
+| 구현·검증하고 다른 도구로 넘긴다 | [작업 흐름](/coding-agents/workflow/) |
+
+## 이 덱이 다루지 않는 것
+
+두 도구의 설정 항목 전체, API 개발, 모델 성능 비교는 다루지 않는다. 이 사이트 자체의
+덱 작성 규칙도 다른 레포에 복사할 대상이 아니다. 공식 문서와 공개 레포를 2026-09-23에
+대조했다. Claude Code가 CLAUDE.md 없이 AGENTS.md를 읽는 것은 실제 세션에서 확인했고, 그 밖의 동작은
+실측한 결과가 아니다.

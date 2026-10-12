@@ -1,0 +1,266 @@
+---
+/*
+ * 수동 단계 탐색 + 검색 가능한 전체 흐름. 사용: <LearningFlow id="unique-slug" flow={data} />
+ * 계약은 learning-flow.ts, 실제 예제는 demos/starlight/request-flow.ts.
+ * id는 페이지 안에서 고유하고 안정적으로 유지한다(단계 참조 URL의 prefix).
+ * 2~4개 객체를 원형으로 배치하고(3개는 삼각형) 각 단계 끝의 storage snapshot을 모두 제공한다.
+ * 같은 객체 from/to는 내부 처리. 네트워크 종류·메시지의 의미는 사례가 명시한다.
+ * 단일 SSR 본문을 단계 보기/전체 보기에서 재사용한다. JS가 없으면 전체 본문만 읽는다.
+ * terms는 그림 아래에 기본으로 펼친 용어 설명이며 메시지의 같은 이름을 설명에 연결한다.
+ * 단계 제목은 선택기에 한 번만 보이고 진행 위치는 native progress로 표시한다.
+ * 이전·다음 버튼은 선택기 양옆과 설명 아래에 두며 같은 단계 상태를 공유한다.
+ * 상태·이벤트는 custom element 인스턴스에 격리. 애니메이션·자동 진행은 없다.
+ * 적용 기준·검증법: docs/learning-flow-authoring.md.
+ */
+import { validateFlow, type LearningFlow } from './learning-flow';
+interface Props { id: string; flow: LearningFlow }
+const { id, flow } = Astro.props;
+validateFlow(flow);
+const name = (id: string) => flow.objects.find(object => object.id === id)!.label;
+const positions = {
+  2: [[18, 65], [82, 65]],
+  3: [[50, 12], [22, 74], [78, 74]],
+  4: [[50, 14], [84, 50], [50, 84], [16, 50]],
+}[flow.objects.length]!;
+---
+<learning-flow id={id} aria-label={flow.title}>
+  <p class="flow-title"><strong>{flow.title}</strong></p>
+  <div data-controls hidden data-pagefind-ignore>
+    <div class="controls">
+      <button type="button" data-reset>처음으로</button>
+      <button type="button" data-overview aria-pressed="false">전체 흐름 보기</button>
+    </div>
+    <div class="picker">
+      <label for={`${id}-select`}>단계 바로 선택</label>
+      <div class="step-navigation">
+        <button class="step-arrow" type="button" data-prev aria-label="이전 단계" title="이전 단계"><span aria-hidden="true">&lt;</span></button>
+        <select id={`${id}-select`} data-select>{flow.steps.map((step, i) => <option value={i}>{i + 1}. {step.title}</option>)}</select>
+        <button class="step-arrow" type="button" data-next aria-label="다음 단계" title="다음 단계"><span aria-hidden="true">&gt;</span></button>
+      </div>
+    </div>
+    <div class="progress-row" data-progress-row>
+      <progress data-progress max={flow.steps.length} value="1" aria-label="전체 흐름에서 현재 단계"></progress>
+      <span data-status role="status" aria-live="polite" aria-atomic="true"></span>
+    </div>
+    <div class="diagram" data-diagram>
+      {flow.steps.map((step, i) => <div data-path={i} data-from={step.message.from} data-to={step.message.to} hidden>
+        <svg aria-hidden="true">
+          <defs><marker id={`${id}-arrow-${step.id}`} viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" /></marker></defs>
+          <path data-line fill="none" stroke="currentColor" stroke-width="3" marker-end={`url(#${id}-arrow-${step.id})`} />
+        </svg>
+        <div class="arrow-label">
+          <span class="arrow-heading"><b class="step-number">{i + 1}</b>{step.message.kind}</span>
+          <span class="payload">{(step.message.values ?? [step.message.label]).map(value => {
+            const term = flow.terms?.find(term => term.name === value);
+            return term ? <a href={`#${id}-term-${term.id}`} aria-label={`${value} 뜻 보기`}>{value}</a> : <span>{value}</span>;
+          })}</span>
+        </div>
+      </div>)}
+      {flow.objects.map((object, i) => <div class="object-group" style={`left:${positions[i][0]}%;top:${positions[i][1]}%`}>
+        <div class="object" data-object={object.id}><strong>{object.label}</strong></div>
+        <p class="object-storage" data-object-storage={object.id}></p>
+      </div>)}
+    </div>
+  </div>
+  <p class="guide">각 단계가 끝난 시점의 보관 상태입니다. 강조된 객체 사이의 화살표를 따라 전달 값을 읽으세요. 내부 처리는 같은 객체로 돌아옵니다.</p>
+  {flow.terms?.length && <details class="terms" data-terms open>
+    <summary>그림에 나오는 값의 뜻</summary>
+    <dl>{flow.terms.map(term => <>
+      <dt id={`${id}-term-${term.id}`} tabindex="-1"><code>{term.name}</code></dt>
+      <dd>{term.description}</dd>
+    </>)}</dl>
+  </details>}
+  <details class="roles">
+    <summary>구성 요소의 역할</summary>
+    <dl data-static-roles>{flow.objects.map(object => <><dt>{object.label}</dt><dd>{object.role}</dd></>)}</dl>
+  </details>
+  <div data-steps>
+    {flow.steps.map((step, i) => <section data-step={i} id={`${id}-${step.id}`} aria-label={step.title}>
+      <p class="step-title"><a href={`#${id}-${step.id}`}>{i + 1}. {step.title}</a></p>
+      <p class="message"><strong>{name(step.message.from)} → {name(step.message.to)}</strong><br />{step.message.kind} · {step.message.label}
+        {step.message.values && <span class="message-values">{step.message.from === step.message.to ? '처리 내용' : '주요 전달 값'}: {step.message.values.join(" · ")}</span>}
+      </p>
+      <p>{step.description}</p>
+      <dl class="storage">{flow.objects.map(object => <><dt>{object.label}</dt><dd data-storage={object.id} data-summary={step.storageSummary?.[object.id] ?? step.storage[object.id]}>{step.storage[object.id]}</dd></>)}</dl>
+    </section>)}
+  </div>
+  <div class="step-navigation bottom-navigation" data-bottom-controls hidden data-pagefind-ignore>
+    <button class="step-arrow" type="button" data-prev aria-label="이전 단계" title="이전 단계"><span aria-hidden="true">&lt;</span></button>
+    <span data-status></span>
+    <button class="step-arrow" type="button" data-next aria-label="다음 단계" title="다음 단계"><span aria-hidden="true">&gt;</span></button>
+  </div>
+</learning-flow>
+
+<style>
+  learning-flow { display: block; margin-block: 1.5rem; border: 1px solid var(--sl-color-gray-4); border-radius: .75rem; padding: 1rem; overflow-wrap: anywhere; }
+  learning-flow [hidden] { display: none !important; }
+  .flow-title { margin: 0 0 1rem; font-size: 1.1rem; }
+  .controls > *, .diagram > * { margin: 0; }
+  .controls { display: flex; gap: .4rem; flex-wrap: wrap; }
+  button, select { color: var(--sl-color-text); background: var(--sl-color-bg); font: inherit; border: 1px solid var(--sl-color-gray-3); border-radius: .35rem; min-height: 44px; padding: .35rem .55rem; cursor: pointer; }
+  button:disabled { opacity: .45; cursor: default; }
+  button:focus-visible, select:focus-visible { outline: 3px solid var(--sl-color-text-accent); outline-offset: 3px; }
+  button[aria-pressed='true'] { background: #dbeafe; color: #1e3a8a; border: 2px solid #2563eb; }
+  :global([data-theme='dark']) button[aria-pressed='true'] { background: #1e3a8a; color: #dbeafe; border-color: #93c5fd; }
+  .picker { display: grid; gap: .3rem; margin-top: .8rem; }
+  .picker > *, .step-navigation > * { margin: 0; }
+  .step-navigation { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; gap: .4rem; }
+  .step-arrow { display: grid; place-items: center; padding: 0; font-size: 1.25rem; }
+  .bottom-navigation { align-items: center; max-width: 14rem; margin: 1rem auto 0; }
+  .bottom-navigation [data-status] { text-align: center; font-size: .85rem; font-variant-numeric: tabular-nums; }
+  select { width: 100%; min-width: 0; }
+  .diagram { position: relative; height: 520px; margin-block: 1rem; isolation: isolate; }
+  .object-group { --node-size: clamp(84px, 18vw, 112px); position: absolute; transform: translate(-50%, calc(var(--node-size) / -2)); width: 43%; max-width: 220px; text-align: center; }
+  .object { width: var(--node-size); height: var(--node-size); margin: 0 auto; border: 2px solid var(--sl-color-gray-3); border-radius: 50%; display: grid; place-items: center; padding: .25rem; line-height: 1.4; background: var(--sl-color-bg); box-shadow: 0 0 0 5px var(--sl-color-bg); }
+  .object strong { font-size: .95rem; }
+  .object[data-endpoint] { border-color: var(--sl-color-text-accent); background: var(--sl-color-gray-6); border-width: 3px; }
+  .object-storage { position: relative; margin: .65rem 0 0; padding: .3rem; border-radius: .35rem; font-size: .8rem; line-height: 1.6; white-space: pre-line; background: var(--sl-color-bg); }
+  .diagram svg { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--sl-color-text-accent); margin: 0; overflow: visible; }
+  .arrow-label { margin: 0; position: absolute; transform: translate(-50%, -50%); width: max-content; max-width: min(230px, 65%); padding: .5rem .65rem; border: 1px solid var(--sl-color-gray-4); border-radius: .6rem; background: var(--sl-color-bg); box-shadow: 0 0 0 4px var(--sl-color-bg); text-align: center; font-size: .85rem; line-height: 1.45; }
+  .arrow-heading { display: flex; justify-content: center; align-items: center; gap: .4rem; font-weight: 600; }
+  .step-number { display: inline-grid; place-items: center; flex-shrink: 0; width: 1.5rem; height: 1.5rem; border-radius: 50%; background: #dbeafe; color: #1e3a8a; }
+  .payload { display: flex; flex-wrap: wrap; justify-content: center; gap: .2rem .35rem; margin-top: .4rem; }
+  .payload > span, .payload > a { margin: 0; padding: .1rem .3rem; border-radius: .2rem; background: var(--sl-color-gray-6); }
+  .payload > a { text-decoration-style: dotted; text-underline-offset: .2em; }
+  .progress-row { display: flex; align-items: center; gap: .75rem; margin-top: .8rem; }
+  .progress-row span { margin: 0; flex-shrink: 0; font-size: .85rem; font-variant-numeric: tabular-nums; }
+  progress { appearance: none; flex: 1; min-width: 0; height: .5rem; border: 0; border-radius: 1rem; overflow: hidden; background: var(--sl-color-gray-5); color: var(--sl-color-text-accent); }
+  progress::-webkit-progress-bar { background: var(--sl-color-gray-5); border-radius: 1rem; }
+  progress::-webkit-progress-value { background: var(--sl-color-text-accent); border-radius: 1rem; }
+  progress::-moz-progress-bar { background: var(--sl-color-text-accent); border-radius: 1rem; }
+  .terms { border: 1px solid var(--sl-color-gray-4); border-radius: .5rem; padding: .7rem; margin-block: .8rem; }
+  .terms summary { cursor: pointer; font-weight: 600; }
+  .terms dt { scroll-margin-top: 6rem; }
+  .terms dt:target { outline: 2px solid var(--sl-color-text-accent); outline-offset: 3px; }
+  .message-values { display: block; margin-top: .4rem; }
+  @media (max-width: 30rem) { .diagram { height: 540px; } .object strong { font-size: .85rem; } }
+  .guide { font-size: .85rem; color: var(--sl-color-gray-2); }
+  section { border-top: 1px solid var(--sl-color-gray-4); padding-top: .8rem; margin-top: 1rem; scroll-margin-top: 6rem; }
+  .step-title { font-weight: 700; margin: 0; }
+  .message { background: var(--sl-color-gray-6); padding: .65rem; border-radius: .35rem; }
+  dl { font-size: .9rem; }
+  dt { font-weight: 700; margin-top: .6rem; }
+  dd { margin-inline-start: 0; }
+  @media print { [data-controls], [data-bottom-controls] { display: none !important; } learning-flow [data-step][hidden], learning-flow [data-static-roles][hidden], learning-flow .step-title[hidden] { display: block !important; } }
+</style>
+
+<script>
+  class LearningFlowElement extends HTMLElement {
+    connectedCallback() {
+      if (this.dataset.ready) return;
+      this.dataset.ready = 'true';
+      const steps = [...this.querySelectorAll<HTMLElement>('[data-step]')];
+      const objects = [...this.querySelectorAll<HTMLElement>('[data-object]')];
+      const select = this.querySelector<HTMLSelectElement>('[data-select]')!;
+      const prev = [...this.querySelectorAll<HTMLButtonElement>('[data-prev]')];
+      const next = [...this.querySelectorAll<HTMLButtonElement>('[data-next]')];
+      const progress = this.querySelector<HTMLProgressElement>('[data-progress]')!;
+      const overviewButton = this.querySelector<HTMLButtonElement>('[data-overview]')!;
+      let current = 0, overview = false;
+      const diagram = this.querySelector<HTMLElement>('[data-diagram]')!;
+      // Pixel geometry keeps circles and labels readable without shrinking text on mobile.
+      const draw = () => {
+        const box = diagram.getBoundingClientRect();
+        if (!box.width) return;
+        const center = (id: string) => {
+          const node = objects.find(object => object.dataset.object === id)!;
+          const rect = node.getBoundingClientRect();
+          return { x: rect.x - box.x + rect.width / 2, y: rect.y - box.y + rect.height / 2, r: rect.width / 2 + 9 };
+        };
+        this.querySelectorAll<HTMLElement>('[data-path]').forEach(route => {
+          const a = center(route.dataset.from!), b = center(route.dataset.to!);
+          const self = route.dataset.from === route.dataset.to;
+          let d: string, lx: number, ly: number;
+          if (self) {
+            const sx = a.x < box.width / 2 ? 1 : -1, sy = a.y < box.height / 2 ? 1 : -1;
+            d = `M ${a.x} ${a.y + sy * a.r} C ${a.x} ${a.y + sy * 240}, ${a.x + sx * 240} ${a.y}, ${a.x + sx * a.r} ${a.y}`;
+            lx = a.x + sx * 100; ly = a.y + sy * 130;
+          } else if (objects.length === 3 && Math.abs(a.y - b.y) > 1) {
+            // Enter/leave the upper circle from its side, keeping its storage note clear.
+            const top = a.y < b.y ? a : b, bottom = a.y < b.y ? b : a;
+            const side = bottom.x < top.x ? -1 : 1;
+            const start = { x: top.x + side * top.r, y: top.y };
+            const end = { x: bottom.x, y: bottom.y - bottom.r };
+            const c1 = { x: start.x + side * 60, y: top.y };
+            const c2 = { x: bottom.x, y: bottom.y - 140 };
+            d = a.y < b.y
+              ? `M ${start.x} ${start.y} C ${c1.x} ${c1.y}, ${c2.x} ${c2.y}, ${end.x} ${end.y}`
+              : `M ${end.x} ${end.y} C ${c2.x} ${c2.y}, ${c1.x} ${c1.y}, ${start.x} ${start.y}`;
+            lx = bottom.x; ly = (top.y + bottom.y) / 2 + 15;
+          } else {
+            const curved = Math.abs(a.y - b.y) < 1;
+            const cx = (a.x + b.x) / 2, cy = curved ? a.y - 200 : (a.y + b.y) / 2;
+            const startLength = Math.hypot(cx - a.x, cy - a.y), endLength = Math.hypot(cx - b.x, cy - b.y);
+            const start = { x: a.x + (cx - a.x) / startLength * a.r, y: a.y + (cy - a.y) / startLength * a.r };
+            const end = { x: b.x + (cx - b.x) / endLength * b.r, y: b.y + (cy - b.y) / endLength * b.r };
+            d = `M ${start.x} ${start.y} Q ${cx} ${cy} ${end.x} ${end.y}`;
+            lx = (start.x + 2 * cx + end.x) / 4; ly = (start.y + 2 * cy + end.y) / 4;
+          }
+          route.querySelector('[data-line]')!.setAttribute('d', d);
+          const label = route.querySelector<HTMLElement>('.arrow-label')!;
+          // Keep long payload labels inside the canvas without moving the objects.
+          const half = label.offsetWidth / 2;
+          label.style.left = `${Math.max(half + 4, Math.min(box.width - half - 4, lx))}px`;
+          label.style.top = `${ly}px`;
+        });
+      };
+      const render = () => {
+        steps.forEach((step, i) => {
+          step.hidden = !overview && i !== current;
+          step.querySelector<HTMLElement>('.step-title')!.hidden = !overview;
+        });
+        this.querySelectorAll<HTMLElement>('[data-path]').forEach(path => {
+          path.toggleAttribute('hidden', overview || Number(path.dataset.path) !== current);
+        });
+        const path = this.querySelector<HTMLElement>(`[data-path="${current}"]`)!;
+        objects.forEach(object => {
+          object.toggleAttribute('data-endpoint', !overview && [path.dataset.from, path.dataset.to].includes(object.dataset.object));
+          const storage = [...steps[current].querySelectorAll<HTMLElement>('[data-storage]')].find(item => item.dataset.storage === object.dataset.object)!;
+          const summary = this.querySelector<HTMLElement>(`[data-object-storage="${object.dataset.object}"]`)!;
+          summary.hidden = overview;
+          summary.textContent = storage.dataset.summary!.replaceAll(' / ', '\n');
+        });
+        this.querySelector<HTMLElement>('[data-progress-row]')!.hidden = overview;
+        progress.value = current + 1;
+        progress.setAttribute('aria-valuetext', `전체 ${steps.length}단계 중 ${current + 1}단계`);
+        this.querySelectorAll('[data-status]').forEach(status => {
+          status.textContent = `${current + 1} / ${steps.length}`;
+          status.setAttribute('aria-label', `전체 ${steps.length}단계 중 ${current + 1}단계`);
+        });
+        this.querySelector<HTMLElement>('[data-bottom-controls]')!.hidden = overview;
+        select.value = String(current);
+        prev.forEach(button => { button.disabled = overview || current === 0; });
+        next.forEach(button => { button.disabled = overview || current === steps.length - 1; });
+        overviewButton.setAttribute('aria-pressed', String(overview));
+        overviewButton.textContent = overview ? '단계 보기로 돌아가기' : '전체 흐름 보기';
+        draw();
+      };
+      const go = (index: number) => { current = Math.max(0, Math.min(steps.length - 1, index)); overview = false; render(); };
+      prev.forEach(button => button.addEventListener('click', () => go(current - 1)));
+      next.forEach(button => button.addEventListener('click', () => go(current + 1)));
+      select.addEventListener('change', () => go(Number(select.value)));
+      this.querySelector('[data-reset]')!.addEventListener('click', () => go(0));
+      overviewButton.addEventListener('click', () => { overview = !overview; render(); });
+      const hashChange = () => {
+        const term = [...this.querySelectorAll<HTMLElement>('[data-terms] dt')].find(term => `#${term.id}` === location.hash);
+        if (term) {
+          term.closest('details')!.open = true;
+          term.focus({ preventScroll: true });
+          term.scrollIntoView({ block: 'nearest' });
+        }
+        const index = steps.findIndex(step => `#${step.id}` === location.hash);
+        if (index !== -1) { go(index); steps[index].scrollIntoView({ block: 'nearest' }); }
+      };
+      window.addEventListener('hashchange', hashChange, { signal: this.abort.signal });
+      this.querySelector<HTMLElement>('[data-controls]')!.hidden = false;
+      this.resizeObserver = new ResizeObserver(draw);
+      this.resizeObserver.observe(diagram);
+      render();
+      hashChange();
+    }
+    private resizeObserver?: ResizeObserver;
+    private abort = new AbortController();
+    disconnectedCallback() { this.abort.abort(); this.resizeObserver?.disconnect(); }
+  }
+  if (!customElements.get('learning-flow')) customElements.define('learning-flow', LearningFlowElement);
+</script>

@@ -1,0 +1,270 @@
+---
+title: "Google AX — 에이전트를 위한 실행 오케스트레이터"
+description: 많은 에이전트의 작업 공간을 준비하고, 기다리는 작업을 멈췄다 재개하려는 Google AX의 문제의식과 역할을 설명한다
+aliases: [Google AX, AX, agentexecutor, Agent Executor, Generative Workspace, Agent Substrate]
+introduced:
+  month: "2026-05"
+  event: Agent Executor 공식 소개·프리뷰 공개
+  source: https://cloud.google.com/blog/products/ai-machine-learning/agent-executor-googles-distributed-agent-runtime
+---
+
+import Thesis from '../../../components/docs/Thesis.astro';
+import TermIntro from '../../../components/docs/TermIntro.astro';
+import SourceFigure from '../../../components/docs/SourceFigure.astro';
+
+<Thesis>
+
+- 에이전트가 많아지면 모델 호출보다 작업 공간 준비·격리·대기 중 자원 관리가 큰 일이 된다.
+- AX는 “이 환경에서 이 작업을 실행해 달라”는 명세를 받아 실행 환경과 중단·재개를 관리하는 플랫폼이다.
+- Task는 실행할 작업, Workspace는 준비할 파일·도구, Model은 모델 설정을 뜻한다.
+- 재개할 때 작업 파일은 복원되지만 프로그램은 새로 시작한다. 어디까지 했는지는 에이전트가 기록해야 한다.
+
+</Thesis>
+
+저장소 하나의 코드를 AI로 수정하는 데 성공했다고 하자. 이제 같은 일을 저장소 천 개에 돌리려면
+각 저장소를 받고, 도구를 설치하고, 작업끼리 파일이 섞이지 않게 해야 한다.
+검토를 기다리는 작업의 실행 환경도 계속 켜 둘지 정해야 한다.
+
+[Google AX](https://github.com/google/ax)는 이 **에이전트 주변의 실행 관리**를 공통화하려는 프로젝트다.
+어떤 코드를 고칠지는 에이전트가 판단하고, 그 에이전트가 일할 환경은 AX가 관리한다.
+이 페이지는 “에이전트 코드만 있으면 되는 것 아닌가?”라는 질문에서 시작한다.
+
+<TermIntro
+  terms={[
+    ['오케스트레이터', 'orchestrator', '여러 작업의 실행 환경과 시작·중단·종료를 관리하는 소프트웨어.'],
+    ['샌드박스', 'sandbox', '작업끼리, 또는 작업과 호스트 사이에 영향을 제한하도록 격리한 실행 환경.'],
+    ['Task', '', 'AX에 선언하는 하나의 실행 단위. 무엇을 어떤 환경과 자원 제한으로 실행할지 적는다.'],
+  ]}
+/>
+
+## 큰 그림: 에이전트는 일하고, AX는 일할 환경을 관리한다
+
+```d2 layout=elk pad=40 title="에이전트 프레임워크·AX·Agent Substrate·Kubernetes의 네 층과 각 층의 책임"
+grid-rows: 4
+
+classes: {
+  zone: { style: { fill: "#ede9fe"; stroke: "#7c3aed"; font-color: "#4c1d95" } }
+  key: { style: { fill: "#dbeafe"; stroke: "#2563eb"; font-color: "#1e3a8a" } }
+  mute: { style: { fill: "#f1f5f9"; stroke: "#94a3b8"; font-color: "#334155" } }
+}
+
+fw: "에이전트 프레임워크\n무엇을 판단하고 어떤 도구를 부를지 구성" { class: mute }
+ax: "AX\n작업 환경 준비 · 많은 작업의 실행 관리 ·\n중단과 재개" { class: key }
+sub: "Agent Substrate\n격리된 실행 환경 · 파일 저장과 복원" { class: zone }
+k8s: "Kubernetes\n기반 서비스를 실행할 클러스터" { class: mute }
+```
+
+지금은 위 두 칸의 차이만 보면 된다. **에이전트 프레임워크**는 모델·도구를 어떤 순서로 부를지 구성하고,
+**AX**는 그 프로그램이 실행될 환경을 관리한다. 실제 격리 환경과 스냅샷은 아래의
+[Agent Substrate](https://github.com/agent-substrate/substrate)가 제공한다.
+Kubernetes는 이 기반 서비스를 운영할 클러스터를 맡는다.
+
+이 계층은 [AX README](https://github.com/google/ax)와 [설계 문서](https://github.com/google/ax/blob/main/DESIGN.md)를
+역할별로 단순화한 것이다. 모든 에이전트에 AX가 필요하다는 뜻은 아니다.
+
+## 문제의식: 잠깐 일하고 오래 기다리는 작업을 어떻게 운영할까
+
+### 환경 준비를 매번 반복한다
+
+코드 수정 에이전트는 시작하자마자 일을 할 수 없다. 저장소와 의존성, 사용할 도구가 먼저 있어야 한다.
+각 에이전트 구현에 준비 코드를 넣으면 같은 일을 반복하고, 설정도 조금씩 달라진다.
+[Workspace 개념](https://github.com/google/ax/blob/main/docs/concepts.md)은 이를 공통 명세로 만들려는 해법이다.
+
+### 기다리는 동안에도 실행 환경은 남아 있다
+
+파일을 고치고 테스트한 뒤 사람의 검토를 기다리는 상황을 보자.
+환경을 켜 두면 CPU·메모리를 계속 확보해야 하고, 그냥 버리면 수정한 파일이 사라질 수 있다.
+필요한 것은 **일의 흔적은 남기고, 실행 자원은 돌려주는 방법**이다.
+
+```d2 layout=elk pad=40 title="대기 중 자원을 계속 점유하는 방식과 상태를 보존하고 자원을 반환하는 방식의 비교"
+direction: down
+
+classes: {
+  warn: { style: { fill: "#fef3c7"; stroke: "#d97706"; font-color: "#78350f" } }
+  key: { style: { fill: "#dbeafe"; stroke: "#2563eb"; font-color: "#1e3a8a" } }
+  mute: { style: { fill: "#f1f5f9"; stroke: "#94a3b8"; font-color: "#334155" } }
+}
+
+keep: 자원을 계속 점유할 때 {
+  k1: 파일 수정·테스트 { class: mute }
+  k2: "검토 대기\n(CPU·메모리 점유)" { class: warn }
+  k3: "모델 응답 대기\n(점유 계속)" { class: warn }
+  k4: 다음 수정 { class: mute }
+  k1 -> k2 -> k3 -> k4
+}
+
+snap: AX가 겨냥하는 방식 {
+  s1: 파일 수정·테스트 { class: mute }
+  s2: "중단\n/workspace 스냅샷" { class: key }
+  s3: "자원 반환\n(다른 Task가 사용)" { class: key }
+  s4: "재개\n새 컨테이너에 복원" { class: key }
+  s5: 다음 수정 { class: mute }
+  s1 -> s2 -> s3 -> s4 -> s5
+}
+```
+
+AX가 겨냥하는 흐름에서는 대기할 때 작업 파일을 저장하고, 재개할 때 새 실행 환경에 복원한다.
+매번 기다림을 자동 감지해 멈춘다는 뜻은 아니다. 언제 중단하고 재개할지는 호출하는 쪽의 로직이 필요하다.
+또한 실행 자원을 반환해도 저장소 등 모든 비용이 없어지는 것은 아니다.
+보존 범위는 [runner 문서](https://github.com/google/ax/blob/main/docs/runner.md)가 정한다.
+
+### 작업 수가 늘면 실행 관리 자체도 커진다
+
+작업마다 격리 환경과 자원 제한을 손으로 만들 수는 없다. 작업을 등록하고 상태를 조회하는
+**제어 계층**도 많은 요청을 처리해야 한다.
+[AX 설계 문서](https://github.com/google/ax/blob/main/DESIGN.md)는 아주 많은 단기 작업을 Kubernetes 리소스로
+저장할 때의 부담을 이유로 작업 상태를 Redis에 둔다고 설명한다.
+이것은 AX의 설계 선택이며, Kubernetes에서 에이전트를 실행할 수 없다는 뜻은 아니다.
+
+## 해법: 실행할 일과 준비할 환경을 선언한다
+
+AX에서 **선언한다**는 말은 원하는 상태를 명세로 적는다는 뜻이다.
+“저장소를 받아라, 도구를 준비해라, 그 뒤 프로그램을 실행하라”는 준비 절차를 매번 직접 연결하는 대신,
+필요한 작업과 환경을 적어 플랫폼에 맡긴다.
+
+### Task · Workspace · Model의 역할
+
+2026-09-29의 [공식 개념 문서](https://github.com/google/ax/blob/main/docs/concepts.md)는 세 리소스를 설명한다.
+
+| 이름 | 쉬운 뜻 | 코드 수정 예 |
+|---|---|---|
+| **Task** | 무엇을 실행할지 적은 작업 명세 | 에이전트 이미지·명령, CPU/메모리 제한, 사용할 Workspace |
+| **Workspace** | 작업 전에 준비할 파일과 도구의 명세 | 수정할 Git 저장소, 연결할 도구, 작업 지침 |
+| **Model** | 재사용할 모델 설정 | 제공자·모델 이름·파라미터·인증 정보 참조 |
+
+Workspace의 도구 연결에는 **MCP(Model Context Protocol)** 서버를 쓸 수 있다.
+스킬은 에이전트가 참고할 작업 지침과 관련 자료다. 여기서는 둘 다 “일을 시작하기 전에 준비할 것”으로 보면 된다.
+
+같은 Workspace 명세를 여러 Task가 참조할 수 있다. 이는 **준비 방법을 재사용한다**는 뜻이다.
+여러 Task가 수정 중인 파일을 하나의 폴더에서 공유한다는 뜻은 아니다. 환경은 각 샌드박스 안에 준비된다.
+Model을 선언했다고 사용자 코드의 모든 모델 호출이 자동으로 그 설정을 따르는 것도 아니다.
+
+### Generative Workspace — 준비 목표를 자연어로 적는다
+
+명세만으로 준비하기 번거로운 부분에는 “의존성을 설치하고 테스트를 실행해 줘” 같은 `goal`을 적을 수 있다.
+첫 시작 때 기본 runner가 이 목표를 코딩 에이전트 Antigravity에 넘겨 환경 준비를 마저 수행한다.
+[Runner 문서](https://github.com/google/ax/blob/main/docs/runner.md)
+
+이 기능의 자리는 **본 작업을 시작하기 전의 준비**다. 자연어로 적었다고 매번 같은 버전의 도구가
+설치된다고 보장하지는 않는다. 재현성이 중요하면 준비된 결과의 버전을 별도로 관리해야 한다.
+
+## 예제: 저장소의 테스트를 돌리는 작업
+
+다음은 [공식 매니페스트](https://github.com/google/ax/blob/main/docs/manifests.md)를 줄인 **설명용 발췌**다.
+이미지 이름은 자리표시자이고, 배포하거나 실행한 예제가 아니다.
+이미지에는 AX의 runner 계약을 구현한 실행 파일과 `/app/agent.py`가 있다는 전제로 구조만 읽는다.
+
+```yaml
+apiVersion: ax.io/v1alpha1
+kind: Task
+metadata:
+  name: test-repository
+  atespace: default
+spec:
+  image: "ghcr.io/my-org/my-agent-image"
+  command: ["python", "/app/agent.py"]
+  resources:
+    limits: { cpu: "2", memory: "4Gi" }
+  workspaces:
+    - name: code-workspace
+      path: "/workspace"
+      goal: "Install dependencies and run the test suite"
+---
+apiVersion: ax.io/v1alpha1
+kind: Workspace
+metadata:
+  name: code-workspace
+  atespace: default
+spec:
+  git:
+    - name: origin
+      repo: "https://github.com/chalk/chalk.git"
+      branch: "main"
+```
+
+읽는 순서는 다음과 같다. `atespace`는 AX 리소스가 속하는 작업 범위이며 여기서는 기본값을 쓴다.
+
+1. Workspace는 준비할 저장소를 정한다.
+2. Task는 그 Workspace를 `/workspace`에 준비하고, goal로 추가 준비를 요청한다.
+3. 준비가 끝나면 runner가 `python /app/agent.py`를 실행한다.
+
+여기서 `Ready`는 작업 환경이 준비되어 실행 중이라는 뜻이지, **테스트나 코드 수정이 성공했다는 뜻은 아니다.**
+[Task 상태 정의](https://github.com/google/ax/blob/main/docs/concepts.md)에 따르면 `WorkspaceReady`는
+환경 준비 완료를, `Ready`는 실행 중이면서 환경 준비가 끝났음을 나타낸다.
+업무 성공은 에이전트의 결과 파일과 테스트 결과로 따로 판단해야 한다.
+
+## 중단과 재개: 파일은 남고 프로그램은 새로 시작한다
+
+문서를 쓰다가 편집기를 닫고 다시 여는 상황에 비유할 수 있다.
+저장한 문서는 남지만, 저장하지 않은 생각까지 자동 복원되는 것은 아니다.
+AX도 `ax suspend task`와 `ax resume task`를 제공하지만 무엇이 보존되는지 구별해야 한다.
+[공식 runner 계약](https://github.com/google/ax/blob/main/docs/runner.md)
+
+<SourceFigure
+  src="/images/ai-trend/ax-cli-resume-demo.png"
+  alt="AX 공식 사이트의 터미널 예시에서 notes.txt를 만든 뒤 Task를 중단·재개하고 같은 파일 이름을 다시 확인한다"
+  width={563}
+  height={419}
+  caption="touch notes.txt → suspend → resume → ls notes.txt 순서로 읽는다. 공식 사이트의 CLI 시연 화면을 캡처한 것이며 이 저장소에서 AX를 실행한 기록은 아니다. 파일이 보인다는 예시와 업무 전체가 복구된다는 보장은 구별한다."
+  sourceHref="https://agentexecutor.io/"
+  sourceLabel="Google AX 공식 사이트 — CLI 시연"
+/>
+
+| 재개 뒤 | 결과 | 에이전트가 할 일 |
+|---|---|---|
+| `/workspace` 안의 수정 파일 | 복원된다 | 이어서 읽고 작업한다 |
+| 메모리에만 있던 변수·진행 위치 | 새 프로세스에 자동 복원되지 않는다 | 중단 전에 파일로 기록하고 재개 때 읽는다 |
+| 이미 준비한 Workspace | 다시 초기화하면 수정 내용을 잃을 수 있다 | runner가 준비 완료 기록을 보고 재설치를 건너뛴다 |
+| 중단 직전에 보낸 PR 생성 요청 | 외부 서비스가 처리했을 수도 있다 | 결과를 조회해 중복 요청을 막는다 |
+
+그래서 **실행 환경을 복구하는 일과 업무를 정확히 이어 가는 일은 다르다.**
+AX의 파일 복원만으로 “결제를 한 번만 실행한다”, “완료한 업무 단계를 다시 하지 않는다”가 보장되지는 않는다.
+업무 이력을 이용해 복구하는 durable execution과 비교할 때 이 차이를 먼저 본다.
+
+## 안쪽 구조가 궁금하다면
+
+사용자가 `ax` CLI로 명세를 보내면 `ax-server`가 검증하고 Agent Substrate에 실행을 요청한다.
+상태와 잠금 정보는 Redis에 둔다. 샌드박스 안에서는 `ax-task-runner`가 Workspace를 준비하고 사용자 명령을 실행한다.
+[현재 설계 문서](https://github.com/google/ax/blob/main/DESIGN.md)는 이 구성을 설명한다.
+
+runner는 Task 시작을 맡는 프로그램이다. 컨테이너의 입구가 `/usr/local/bin/ax-task-runner`로 정해져 있고,
+준비 상태를 `/readyz`로 알려야 한다. 따라서 임의의 기존 이미지를 그대로 올리는 대신 기본 이미지를 확장하거나
+[runner 계약](https://github.com/google/ax/blob/main/docs/runner.md)을 구현해야 한다.
+
+## 기존 방식과의 역할 분담
+
+| 비교 대상 | 주로 맡는 일 | AX와 구별할 점 |
+|---|---|---|
+| 에이전트 프레임워크 | 모델 판단·도구 호출·위임의 흐름 | AX는 이 코드를 실행할 환경을 맡는다 |
+| [Kubernetes Job](https://kubernetes.io/docs/concepts/workloads/controllers/job/) | 정해진 완료 조건까지 Pod 실행 | Job 중단만으로 작업 파일의 스냅샷·복원이 생기지는 않는다 |
+| 샌드박스 런타임 | 격리된 코드 실행 | AX는 그 위에 재사용할 작업·환경 명세와 수명주기 API를 둔다 |
+| 업무 복구 시스템 | 어느 업무 단계까지 완료했는지 기록하고 복구 | AX의 파일 복원과는 보장 범위가 다르다 |
+
+AX를 이해하기 좋은 사례는 같은 변경을 여러 저장소에 적용하거나, 많은 격리 환경에서 에이전트를 평가하는 작업이다.
+설정의 반복과 대기 자원 관리가 문제라면 AX가 겨냥한 영역과 맞닿는다.
+단순한 모델 호출 한 번에는 이런 실행 관리 계층이 필요하지 않을 수 있다.
+
+이 템플릿은 AX의 개념과 실행 구조를 다룬다. 플랫폼 후보 비교는 범위에 포함하지 않는다.
+이 페이지는 에이전트 실행의 문제의식과 핵심 역할에 집중한다.
+
+## 한계와 확인할 조건
+
+- **개발 중인 API다.** [README](https://github.com/google/ax)는 안정 버전 전에 큰 호환성 변경이 있을 수 있다고 명시한다.
+- **운영할 기반이 필요하다.** Kubernetes·Agent Substrate·Redis·AX 서버를 운영하는 비용과 복잡성이 생긴다.
+- **자연어 준비와 모델 판단은 틀릴 수 있다.** 환경 준비 완료와 업무 성공을 구별하고 실제 결과를 확인해야 한다.
+- **규모 주장은 실측과 다르다.** 클러스터당 수십억 작업이라는 프로젝트의 목표·주장을 이 저장소에서 검증하지 않았다.
+
+## 이해 확인
+
+검토 대기 중인 Task를 멈췄다가 다음 날 재개했다. 수정한 파일이 남아 있으면 어제 하던 리팩터링을 정확히 이어 갈까?
+
+파일 보존은 확인할 수 있다. 하지만 진행 위치가 메모리에만 있었다면 새 프로세스가 그 위치를 알 수 없다.
+진행 기록을 파일로 남기고 재개 때 읽는 로직이 필요하다. 어제 보낸 PR 생성 요청도 외부에서 처리됐는지 확인해야 한다.
+
+## 기준 시점과 확인 범위
+
+- **확인일:** 2026-09-29.
+- **기준:** `main` 브랜치, `ax.io/v1alpha1`. README·DESIGN·concepts·manifests·runner 문서.
+- **확인한 것:** 세 리소스의 역할, AX 서버의 직접 실행 구조, runner와 파일 복원 계약.
+- **기존 설명과 달라진 것:** 현재 문서는 Gateway를 핵심 리소스로 열거하지 않으며 별도 `ax-controller` 구조를 설명하지 않는다. 예제의 작업 범위 필드도 `metadata.atespace`다.
+- **확인하지 않은 것:** AX 배포, 중단·재개 실험, 성능 측정. YAML은 설명용 발췌다.
