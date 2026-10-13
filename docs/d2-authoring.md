@@ -115,13 +115,15 @@ svg -> browser: 표시 {
 ## 로고·아이콘
 
 제품·서비스 노드에는 글자 대신 로고를 붙일 수 있다. 로고는 `src/d2/icons/`에 둔 파일만 쓴다
-(목록과 출처는 그 폴더의 README). 빌드와 `d2-measure.mjs`가 d2를 `src/d2/`를 기준 디렉터리로 실행하므로
+(목록과 출처는 그 폴더의 README). Kubernetes 리소스·컴포넌트는 공식 아이콘 세트가 `icons/k8s/`에 있어
+`icon: icons/k8s/pod.svg`처럼 kubectl 약어로 쓴다. kagent·kMCP 로고도 있다. 빌드와 `d2-measure.mjs`가 d2를 `src/d2/`를 기준 디렉터리로 실행하므로
 펜스에서는 상대 경로 `icons/<이름>.svg`로 적는다. 원격 URL은 쓰지 않는다 — D2가 빌드 때 받아서 박아
 넣는데, 하나만 실패해도 변환이 멈추고 프록시 환경에서는 설정이 더 필요하다.
 
 ```text
 pg: Postgres HA { shape: cylinder; class: warn; icon: icons/postgresql.svg }
 k8s: 온프렘 Kubernetes { icon: icons/kubernetes.svg; … }     # 컨테이너는 왼쪽 위에 작게 붙는다
+pod: "LiteLLM Pod" { icon: icons/k8s/pod.svg }                 # Kubernetes 리소스는 k8s/ 아래 약어
 gh: "" { shape: image; icon: icons/github.svg; width: 48; height: 48 }   # 로고만 있는 노드
 ```
 
