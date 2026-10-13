@@ -1,0 +1,195 @@
+---
+import crypto from 'node:crypto';
+
+/*
+  헤더의 테마 선택을 <select> 대신 해/달 아이콘 토글 버튼으로 바꾼다 (Starlight `ThemeSelect` override).
+
+  기본 <select>는 폭이 6.25em으로 고정돼 한국어 라벨("어두운 테마")이 말줄임되고, 열린 목록에는
+  아이콘을 넣을 수 없다. 누르면 light ↔ dark만 오가며 'auto'는 두지 않는다 — Rapide 테마를 쓰던
+  시절과 같은 동작이다. 저장 키와 전환 방식은 Starlight ThemeProvider의 것을 그대로 쓰므로
+  D2 <img>의 다크 전환(color-scheme 전파)도 동일하게 동작한다.
+
+  아이콘과 전환 애니메이션은 starlight-theme-rapide(MIT, HiDeoo)의 ThemeSelect override에서 가져와
+  이 레포에 맞게 줄였다. 원작: https://github.com/HiDeoo/starlight-theme-rapide
+*/
+
+const id = `moon-mask-${crypto.randomBytes(4).toString('hex')}`;
+---
+
+<starlight-theme-toggle>
+	<button
+		aria-label={Astro.locals.t('themeSelect.accessibleLabel')}
+		aria-live="polite"
+		class="sl-flex"
+		title={Astro.locals.t('themeSelect.accessibleLabel')}
+	>
+		<svg aria-hidden="true" height="16" viewBox="0 0 24 24" width="16">
+			<mask class="moon" id={id}>
+				<rect x="0" y="0" width="100%" height="100%" fill="white"></rect>
+				<circle cx="24" cy="10" r="6" fill="black"></circle>
+			</mask>
+			<circle class="sun" cx="12" cy="12" r="6" mask={`url(#${id})`}></circle>
+			<g class="sun-beams" stroke="currentColor">
+				<line x1="12" y1="1" x2="12" y2="3"></line>
+				<line x1="12" y1="21" x2="12" y2="23"></line>
+				<line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+				<line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+				<line x1="1" y1="12" x2="3" y2="12"></line>
+				<line x1="21" y1="12" x2="23" y2="12"></line>
+				<line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+				<line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+			</g>
+		</svg>
+	</button>
+</starlight-theme-toggle>
+
+<style>
+	starlight-theme-toggle {
+		--toggle-duration: 400ms;
+		--toggle-ease-elastic: cubic-bezier(0.5, 1.25, 0.75, 1.25);
+		align-self: stretch;
+	}
+
+	button {
+		align-items: center;
+		background-color: transparent;
+		border: none;
+		cursor: pointer;
+		height: 100%;
+		margin-inline: 0.5rem;
+		padding-inline: 0.75rem;
+	}
+
+	svg {
+		stroke-linecap: round;
+	}
+
+	svg :is(.moon, .sun, .sun-beams) {
+		transform-origin: center;
+	}
+
+	svg :is(.moon, .sun) {
+		fill: var(--sl-color-gray-2);
+	}
+
+	svg .sun-beams {
+		stroke: var(--sl-color-gray-2);
+		stroke-width: 2px;
+	}
+
+	button:is(:hover, :focus-visible) svg :is(.moon, .sun) {
+		fill: var(--sl-color-accent-high);
+	}
+
+	button:is(:hover, :focus-visible) svg .sun-beams {
+		stroke: var(--sl-color-accent-high);
+	}
+
+	:global([data-theme='dark']) svg .sun {
+		transform: scale(1.75);
+	}
+
+	:global([data-theme='dark']) svg .sun-beams {
+		opacity: 0;
+	}
+
+	:global([data-theme='dark']) svg .moon circle {
+		transform: translateX(-7px);
+	}
+
+	@supports (cx: 1) {
+		:global([data-theme='dark']) svg .moon circle {
+			cx: 17;
+			transform: translateX(0);
+		}
+	}
+
+	@media (prefers-reduced-motion: no-preference) {
+		svg .sun {
+			transition: transform var(--toggle-duration) var(--toggle-ease-elastic);
+		}
+
+		svg .sun-beams {
+			transition:
+				opacity var(--toggle-duration) ease,
+				transform var(--toggle-duration) var(--toggle-ease-elastic);
+		}
+
+		svg .moon circle {
+			transition: transform calc(var(--toggle-duration) / 2) ease-out;
+		}
+
+		@supports (cx: 1) {
+			svg .moon circle {
+				transition: cx calc(var(--toggle-duration) / 2) ease-out;
+			}
+		}
+
+		:global([data-theme='dark']) svg .sun {
+			transition-duration: calc(var(--toggle-duration) / 2);
+			transition-timing-function: ease;
+		}
+
+		:global([data-theme='dark']) svg .sun-beams {
+			transform: rotateZ(-25deg);
+			transition-duration: calc(var(--toggle-duration) / 4);
+		}
+
+		:global([data-theme='dark']) svg .moon circle {
+			transition-delay: calc(var(--toggle-duration) / 4);
+			transition-duration: var(--toggle-duration);
+		}
+	}
+</style>
+
+{/* FOUC를 막기 위해 인라인. ThemeProvider.astro의 전역 객체를 쓴다. */}
+<script is:inline>
+	StarlightThemeProvider.updatePickers();
+</script>
+
+<script>
+	type Theme = 'auto' | 'dark' | 'light';
+
+	const storageKey = 'starlight-theme';
+
+	const parseTheme = (theme: unknown): Theme =>
+		theme === 'auto' || theme === 'dark' || theme === 'light' ? theme : 'auto';
+
+	const loadTheme = (): Theme =>
+		parseTheme(typeof localStorage !== 'undefined' && localStorage.getItem(storageKey));
+
+	function storeTheme(theme: Theme): void {
+		if (typeof localStorage !== 'undefined') {
+			localStorage.setItem(storageKey, theme === 'light' || theme === 'dark' ? theme : '');
+		}
+	}
+
+	const getPreferredColorScheme = (): Theme =>
+		matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+
+	function onThemeChange(theme: Theme): void {
+		StarlightThemeProvider.updatePickers(theme);
+		document.documentElement.dataset['theme'] = theme === 'auto' ? getPreferredColorScheme() : theme;
+		storeTheme(theme);
+	}
+
+	// 저장된 선택이 없을 때만 OS 설정 변화를 따른다.
+	matchMedia('(prefers-color-scheme: light)').addEventListener('change', () => {
+		if (loadTheme() === 'auto') onThemeChange('auto');
+	});
+
+	customElements.define(
+		'starlight-theme-toggle',
+		class StarlightThemeToggle extends HTMLElement {
+			constructor() {
+				super();
+				onThemeChange(loadTheme());
+				const button = this.querySelector('button');
+				button?.addEventListener('click', () => {
+					const current = document.documentElement.dataset['theme'];
+					onThemeChange(current === 'dark' ? 'light' : 'dark');
+				});
+			}
+		},
+	);
+</script>

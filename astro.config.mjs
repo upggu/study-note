@@ -44,6 +44,8 @@ export default defineConfig({
 				Sidebar: './src/components/layout/Sidebar.astro',
 				// 헤더에 "[사이드바 토글] Study Note / <현재 덱>".
 				SiteTitle: './src/components/layout/SiteTitle.astro',
+				// 헤더 오른쪽 테마 선택을 해/달 아이콘 토글로 바꾼다 — 파일 머리 주석 참고.
+				ThemeSelect: './src/components/layout/ThemeToggle.astro',
 			},
 			plugins: [
 				starlightImageZoom(),

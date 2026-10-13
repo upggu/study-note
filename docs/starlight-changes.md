@@ -20,6 +20,7 @@
 | 랜딩 덱 카탈로그 | 이름 검색·태그 필터 + 카테고리 카드/테이블 전환 + 덱 이름·카테고리·최근 수정일 정렬 + Git 이력으로 수정일 계산 | `scripts/prepare-git-history.mjs` · `src/components/docs/DeckCatalog.astro` |
 | 본문 폰트 Pretendard | `customCss` (dynamic subset) | `astro.config.mjs` |
 | 본문 폭 45→55rem | `--sl-content-width` | `src/styles/custom.css` |
+| 헤더 테마 선택 → 해/달 토글 | `ThemeSelect` override. light↔dark만 오가고 auto 없음. 기본 select는 한국어 라벨이 말줄임되고 목록에 아이콘을 못 넣는다 | `src/components/layout/ThemeToggle.astro` |
 | 검색 덱 라벨 위치·모양 | Pagefind UI 태그 칩 재스타일 | `src/styles/custom.css` |
 | 한국어 단일 로케일 | `defaultLocale: 'root'` + `ko` | `astro.config.mjs` |
 
