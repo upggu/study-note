@@ -10,9 +10,9 @@
 |---|---|---|
 | 덱 = topic 사이드바 | 덱별 설정·MDX를 파생 loader로 합성 + [starlight-sidebar-topics](https://starlight-sidebar-topics.netlify.app/) | `src/content/docs/*/_deck.mjs` · `src/data/load-decks.mjs` · `astro.config.mjs` |
 | 테마 (Vitesse 계열) | [starlight-theme-rapide](https://starlight-theme-rapide.vercel.app/) 플러그인 | `astro.config.mjs` |
-| D2 펜스 렌더 (다이어그램) | [astro-d2](https://astro-d2.vercel.app/) 통합 + native D2 v0.8.2 (**starlight보다 먼저**) | `scripts/prepare-d2.mjs` · `astro.config.mjs` |
+| Markdown 프로세서 | `site-paths` integration 호환을 위해 `unified()` 명시 | `astro.config.mjs` |
+| D2 펜스 렌더 (다이어그램) | 자체 integration + native D2 v0.9.0 (**starlight보다 먼저**) | `src/integrations/d2.mjs` · `scripts/prepare-d2.mjs` · `astro.config.mjs` |
 | 이미지 클릭 확대 | [starlight-image-zoom](https://starlight-image-zoom.vercel.app/) 플러그인 + 기존 override 합성 | `astro.config.mjs` · `MarkdownContent.astro` · `SourceFigure.astro` |
-| Markdown 프로세서 | 이미지 확대 호환을 위해 `unified()` 명시 | `astro.config.mjs` |
 | 하위 경로 배포 | 본문 경로 변환·공용 URL 함수·topics 경로 보정 | `src/config/site.mjs` · `src/integrations/site-paths.mjs` · `src/utils/site-path.mjs` · `src/route-middleware.ts` |
 | 검색 결과에 덱 이름 표시 | `MarkdownContent` 컴포넌트 override | `src/components/layout/MarkdownContent.astro` |
 | 덱 index 별칭 검색 | `_deck.mjs`의 `aliases`를 본문 앞에 표시 | `src/content/docs/*/_deck.mjs` · `MarkdownContent.astro` |
@@ -62,7 +62,7 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
   코드 블록·인라인 코드·JavaScript 표현식은 변환하지 않는다.
 - `DeckCatalog`·`DeckMap`·`SourceFigure`·`ExternalLink`는 자신의 props를 렌더할 때 처리한다.
   MDX 변환기는 이 컴포넌트들의 props를 건드리지 않는다. 새 컴포넌트도 소유 지점을 하나만 둔다.
-- Starlight 기본 사이트 제목·사이드바·검색과 astro-d2의 생성 이미지 경로는 각 패키지가 base를 처리한다.
+- Starlight 기본 사이트 제목·사이드바·검색은 Starlight가, D2 생성 이미지 경로는 `src/integrations/d2.mjs`가 base를 처리한다.
   생성된 결과 전체에 prefix를 다시 붙이는 후처리는 하지 않는다.
 - topics 0.8은 root locale의 topic 링크에 base를 붙이지 않으며, 덱 경계에서 게시 URL과 content id를
   비교한다. topics의 `pre` middleware 뒤에 실행되는 `src/route-middleware.ts`가 링크를 보정하고
@@ -79,19 +79,31 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
 ## 다이어그램과 이미지 확대
 
 - **다이어그램은 전부 D2다** (규칙은 [d2-authoring.md](d2-authoring.md)).
-  `astro-d2`가 빌드 시 SVG 파일을 만들고 `<img>`로 넣으므로 문법 오류를 빌드가 잡는다.
-  `inline: false` 기본값을 유지해야 다크 모드와 자동 확대가 함께 안정적으로 동작한다.
-  인라인 SVG가 필요한 링크·툴팁은 별도 검토 대상이다.
+  자체 integration `src/integrations/d2.mjs`가 빌드 시 SVG 파일을 만들고 `<img>`로 넣으므로 문법 오류를
+  빌드가 잡는다. 기본 `<img>` 출력을 유지해야 다크 모드와 자동 확대가 함께 안정적으로 동작한다.
+  D2 `link:`·`tooltip:`이 필요한 그림만 펜스 단위 `inline=true` + `<Zoom>`으로 쓴다(2026-10-13).
+  이를 위해 `MarkdownContent.astro`가 그림 클릭을 확대 버튼으로 넘기고 `svg[data-d2-inline] a`의 click
+  전파를 끊으며(D2의 중첩 svg 때문에 플러그인의 클릭 처리가 닿지 않는다), `custom.css`가 인라인
+  svg를 본문 폭에 맞추며, `site-paths`가 `d2` 펜스 안 `link: /…`에 base를 붙인다.
+  inline 출력의 크기·제목·`data-d2-inline` 표시는 integration이 SVG 문자열에 직접 넣고, rehype 플러그인
+  `src/integrations/d2-inline.mjs`는 D2가 심는 `<style>`이 Astro MDX에서 접히지 않게만 지킨다
+  (MDX가 `<style>` 본문을 `set:html`로 접고 정적 최적화가 그 속성을 글자 그대로 직렬화하는 문제).
+- 2026-10-13까지는 [astro-d2](https://astro-d2.vercel.app/)를 썼다. 이 레포가 쓰는 기능은 펜스 속성 몇 개와
+  `<img>`/inline 출력뿐인데, astro-d2 0.14는 쓰지 않는 D2.js WebAssembly(`@d2lang/d2`, 92MB)를 빌드마다
+  정적으로 로드하고, `satteri@0.9` 요구로 Starlight 0.42와 호이스팅 충돌을 일으켰으며(루트 `satteri`가
+  0.9가 되면 `<Steps>`·`<Tabs>`의 `htmlToHast` import가 깨진다), inline 모드에서 `d2version` 속성을
+  못 알아봐 제목·크기 처리가 빠졌다. 그래서 같은 산출물 경로 규칙을 지키는 자체 integration으로
+  바꿨고, 교체 직후 기존 SVG 전부가 바이트 단위로 같음을 확인했다.
 - 초기에는 Mermaid(`astro-mermaid` + 자체 `MermaidZoom.astro` 확대 층)를 함께 썼지만,
   2026-08 덱 단위 일괄 마이그레이션(이슈 #2)으로 전부 D2로 변환하고 통합을 제거했다.
   클라이언트 렌더라 문법 오류가 빌드를 통과하는 점, 테마 전환 때 SVG를 다시 그리는 점이
   검증 비용의 주범이었다.
-- D2 생성은 native D2 `v0.8.2`를 사용한다. `scripts/prepare-d2.mjs`가 macOS arm64/x64와
+- D2 생성은 native D2 `v0.9.0`을 사용한다. `scripts/prepare-d2.mjs`가 macOS arm64/x64와
   Linux x86_64/arm64의 공식 standalone archive 및 SHA-256을 코드에 고정하고,
-  `node_modules/.astro/d2/v0.8.2/` 아래 캐시를 준비한다. 검증된 `bin`을 `PATH` 앞에 붙인 뒤
-  `astroD2()`를 등록하므로 로컬·Cloudflare Pages 모두 시스템 전역 설치가 필요 없다.
+  `node_modules/.astro/d2/v0.9.0/` 아래 캐시를 준비한다. integration이 그 바이너리를 절대 경로로
+  실행하므로 로컬·Cloudflare Pages 모두 시스템 전역 설치가 필요 없고 `PATH`도 건드리지 않는다.
 - archive는 임시 디렉터리에서 다운로드·checksum 검증·압축 해제하고, 실행 권한과
-  `d2 --version == v0.8.2`까지 확인한 디렉터리만 원자적으로 캐시에 반영한다. 캐시 hit에서도
+  `d2 --version == v0.9.0`까지 확인한 디렉터리만 원자적으로 캐시에 반영한다. 캐시 hit에서도
   실행 권한과 버전을 다시 확인한다. 기본 레이아웃은 `elk`다.
 - 생성된 `public/d2/`는 빌드 산출물이므로 `.gitignore`에서 제외한다.
 - `starlight-image-zoom`은 일반 Markdown/MDX 이미지와 D2 `<img>`를 자동으로 감싼다.
@@ -99,9 +111,12 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
 - 이 저장소는 Pagefind 덱 라벨용 `MarkdownContent` override가 이미 있으므로 플러그인이 자체
   override를 설치하지 않는다. 기존 `MarkdownContent.astro`가 `<ImageZoom />` 런타임을 직접
   렌더해야 검색 메타와 이미지 확대가 함께 동작한다.
-- `starlight-image-zoom` 0.15는 Astro 7의 기본 Sätteri 프로세서를 아직 지원하지 않아서
-  `@astrojs/markdown-remark`의 `unified()`를 명시했다. 플러그인 업그레이드 때 Sätteri 지원 여부를
-  다시 확인하고, 지원되면 이 임시 호환 설정과 직접 의존성을 함께 제거할 수 있다.
+- Markdown 프로세서는 `@astrojs/markdown-remark`의 `unified()`를 명시한다. 처음에는
+  `starlight-image-zoom` 0.15가 Astro 7 기본값인 Sätteri를 지원하지 않아서였고, 0.16(2026-10)에서
+  지원이 추가됐지만 `src/integrations/site-paths.mjs`가 `config.markdown.processor.options.remarkPlugins`에
+  직접 remark 플러그인을 끼워 넣는 구조라 Sätteri에서는 `astro:config:setup`이 실패한다
+  (2026-10-13 확인). Sätteri로 가려면 그 integration을 `mdastPlugins` 방식으로 이식하고 MDX의 JSX
+  노드 처리까지 검증해야 하므로, 그때까지 이 설정과 직접 의존성을 유지한다.
 
 ## 외관 — 세 겹
 

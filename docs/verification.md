@@ -59,7 +59,7 @@ D2의 전체 작성 규칙은 [d2-authoring.md](d2-authoring.md)에 있다. 폭�
 `node scripts/d2-measure.mjs [--png] <파일.mdx>`를 쓴다 — 빌드 산출물과 픽셀 단위로 같은
 크기를 캐시 준비 뒤 파일당 1~2초에 찍고, `--png`는 블록별 이미지를 `.d2-measure/`에 만들어 렌더 결과
 (라벨 겹침·컨테이너 관통처럼 폭 수치로 안 잡히는 결함)를 빌드·브라우저 없이 훑게 해 준다.
-이 스크립트도 `astro.config.mjs`와 같은 준비 함수를 거쳐 캐시된 native D2 v0.8.2 CLI를 쓴다.
+이 스크립트도 `astro.config.mjs`와 같은 준비 함수를 거쳐 캐시된 native D2 v0.9.0 CLI를 쓴다.
 정적 렌더 확인으로 판단이 끝나면 `npm run check`로 마친다. 브라우저 확인을 자동으로 추가하지 않는다.
 
 ## 브라우저가 필요할 때 고를 항목

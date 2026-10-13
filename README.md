@@ -73,8 +73,8 @@ AGENTS.md                     # 에이전트 작업 진입점 — Codex·Claude 
 - **덱 하나 = topic 하나** — [starlight-sidebar-topics](https://starlight-sidebar-topics.netlify.app)가
   상단에서 덱을 전환하고 덱마다 독립된 사이드바를 준다
 - **검색은 Pagefind 내장** — 빌드 시 정적 인덱스가 생성된다. 별도 설정 없음
-- **다이어그램은 [astro-d2](https://astro-d2.vercel.app)** — ```` ```d2 ```` 펜스를 빌드 때
-  SVG로 만들어 문법 오류를 빌드가 잡는다
+- **다이어그램은 자체 D2 integration**(`src/integrations/d2.mjs`) — ```` ```d2 ```` 펜스를 빌드 때
+  고정 버전의 native D2로 SVG로 만들어 문법 오류를 빌드가 잡는다
 - **이미지 확대는 [starlight-image-zoom](https://github.com/HiDeoo/starlight-image-zoom)** —
   본문 이미지와 D2 다이어그램을 클릭하면 전체 화면 dialog로 연다
 - **단계별 흐름은 `LearningFlow`** — 누가 무엇을 보관하는지 단계마다 비교하는 설명에 쓴다

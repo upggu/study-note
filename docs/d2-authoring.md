@@ -5,7 +5,8 @@
 
 **정적 관계·시퀀스 다이어그램은 D2로 그린다.** ```` ```d2 ```` 펜스는 빌드 때 SVG `<img>`로 바뀌고,
 이미지를 누르면 starlight-image-zoom의 확대 dialog가 열린다 — 전용 확대 컴포넌트가
-필요 없다. 문법 오류는 빌드가 잡는다.
+필요 없다. 문법 오류는 빌드가 잡는다. 노드 링크·호버 설명이 필요한 그림만 `inline=true`로
+페이지에 직접 그린다(아래 "링크·툴팁이 필요한 그림").
 
 단계별 메시지와 객체의 데이터 보관 상태를 탐색하는 학습 UI는 별도 `LearningFlow` 컴포넌트를 쓴다.
 적용 경계·SSR 전체 설명·작성 계약은 [LearningFlow 작성 규칙](learning-flow-authoring.md)을 따른다.
@@ -62,13 +63,20 @@ svg -> browser: 표시 {
   2개가 방향에 따라 겹친 사례가 있다. `node scripts/d2-measure.mjs --png <파일.mdx>`가 블록별
   PNG를 만들어 주므로 빌드·브라우저 없이 훑을 수 있다.
 - `layout=dagre`는 거의 시도할 가치가 없다 — 이슈 #2 통산 1승 23패였다. elk가 기본이다.
-- **`direction`은 다이어그램 전체에 하나만 걸린다.** 컨테이너 안에 `direction`을 써도 조용히
-  무시되고 자식 노드가 루트 방향을 그대로 따른다. dagre·ELK가 계층적 알고리즘이라 한 방향으로만
-  동작하기 때문이고, 컨테이너별 방향은 TALA 전용이라 이 저장소에서는 쓸 수 없다
-  ([D2 — Layouts](https://d2lang.com/tour/layouts/)). "가로 레인을 세로로 쌓는" 배치는
-  불가능하고 선택지는 "전부 세로" 아니면 "전부 가로"뿐이므로, 레인 안 노드가 3개를 넘으면
-  루트를 `direction: down`으로 두고 세로로 길게 간다. 본문 폭을 넘겨 글자가 1/3로 줄어드는
-  것보다 낫다. 컨테이너로 묶는 것 자체는 정상 동작한다 — 안 되는 건 자식의 방향뿐이다.
+- **`direction`은 elk·dagre에서 다이어그램 전체에 하나만 걸린다.** 컨테이너 안에 `direction`을 써도
+  조용히 무시되고 자식 노드가 루트 방향을 그대로 따른다. dagre·ELK가 계층적 알고리즘이라 한 방향으로만
+  동작하기 때문이다([D2 — Layouts](https://d2lang.com/tour/layouts/)). elk에서 "가로 레인을 세로로
+  쌓는" 배치가 필요하면 아래 `layout=tala`나 `grid-rows`를 쓰고, 둘 다 안 맞으면 루트를
+  `direction: down`으로 두고 세로로 길게 간다. 본문 폭을 넘겨 글자가 1/3로 줄어드는 것보다 낫다.
+  컨테이너로 묶는 것 자체는 정상 동작한다 — 안 되는 건 자식의 방향뿐이다.
+- **`layout=tala`는 펜스 단위로 쓴다. 전역 기본은 elk 그대로다.** D2 v0.9.0부터 TALA가 오픈소스로
+  바이너리에 번들돼 별도 설치·라이선스 키 없이 쓸 수 있다. TALA만 **컨테이너별 `direction`**을
+  존중하고, 컨테이너의 `width`·`height`, 다른 객체를 가리키는 `near`도 TALA 전용이다. 2026-10-13에
+  원본 노트 레포의 수백 개 펜스를 TALA로 다시 재 보니 넓어진 그림이 좁아진 그림의 세 배였다 — 기존
+  그림이 elk의 세로 배치에 맞춰 다듬어져 있어서다. 그러니 일괄 전환하지 말고, **가로로 1,200px을
+  넘는 체인·순환 흐름이나 레인 안 방향이 필요한 그림에서 elk와 tala를 둘 다 재서 고른다**
+  (1854px 가로 체인이 695px 순환 배치로 접힌 사례가 있다). 결과는 결정적이라 같은 입력이면 같은
+  SVG가 나온다. 사이즈를 재는 `scripts/d2-measure.mjs`는 펜스의 `layout=` 속성을 그대로 따른다.
 - 접근 가능한 대체 텍스트가 되도록 `title="…"`을 구체적으로 쓴다.
 - **노드·컨테이너 키로 D2 예약어를 쓰지 않는다.** `link`·`top`에서 실제로
   `reserved keywords are prohibited in edges`로 빌드가 죽었다 — 선언은 통과하고 **엣지에서 참조하는
@@ -84,6 +92,7 @@ svg -> browser: 표시 {
 - 엣지의 `style.animated: true`는 방향이나 진행이 핵심일 때만 쓴다.
 - 흐름을 구분해서 보여 줄 엣지는 `style.stroke-dash: 3` 점선으로 쓴다. 모든 선을 점선으로 만들지 않는다.
 - 기본 `inline: false`를 유지한다. 외부 SVG `<img>`가 다크 모드와 이미지 확대에 가장 안정적이다.
+  **`tooltip:`·`link:`가 필요한 그림만** 펜스에 `inline=true`를 주고 `<Zoom>`으로 감싼다(아래 절).
 - `layout=elk`, `pad`, `sketch`, `theme` 같은 펜스 속성은 그 그림에 필요한 것만 덮어쓴다.
   `layout=elk pad=40`은 `astro.config.mjs`의 전역 기본값과 같아 사실 중복이지만, 기존 펜스
   대부분이 이 형태라 그대로 둬도 무해하다. **sequence 펜스는 `pad=40`만 쓴다** — sequence는
@@ -98,10 +107,52 @@ svg -> browser: 표시 {
   브라우저 확인이 필요한지는 [검증 지침](verification.md)을 따른다.
 - `<Tabs>` 안 다이어그램의 브라우저 확인이 필요하면 해당 탭만 열어 본다.
 
-## grid-rows · grid-columns — 컨테이너 안 방향의 유일한 우회로
+## 링크·툴팁이 필요한 그림 — `inline=true` + `<Zoom>`
 
-컨테이너 안에 `direction`은 못 줘도(위 레이아웃 규칙) `grid-rows`/`grid-columns`를 주면 자식이
-그 모양으로 배열된다. "가로 레인을 세로로 쌓는" 배치를 만드는 유일한 수단이다 —
+`<img>`로 실린 SVG에서는 D2의 `link:`·`tooltip:`이 죽는다(브라우저가 이미지 안 상호작용을 막는다).
+`style.animated`는 `<img>`에서도 돈다. 노드에서 다른 페이지로 이동하거나 호버 설명이 필요한
+그림만 아래 형태로 쓴다. 실물은 [D2 페이지의 링크·설명 절](../src/content/docs/starlight/d2.mdx)에 있다.
+
+````mdx
+import { Zoom } from 'starlight-image-zoom/components';
+
+<Zoom label="접근 가능한 설명 — title과 같은 문장">
+
+```d2 inline=true title="접근 가능한 설명"
+picture: 이미지 안내 { link: /starlight/components/; tooltip: 화면의 실제 모양을 보여 줄 때 }
+```
+
+</Zoom>
+````
+
+- **`<Zoom>`으로 직접 감싼다.** starlight-image-zoom의 자동 감싸기는 `<img>`에만 걸리고, 런타임은
+  `<Zoom>` 바로 아래 `<svg>`도 확대할 수 있다. JSX 안이므로 펜스 앞뒤에 빈 줄을 두고 들여쓰지 않는다.
+- **링크는 base 없는 문서 주소로 쓴다.** `site-paths` integration이 `d2` 펜스 안 `link: /…` 값에 배포
+  base를 붙인다(`scripts/site-paths.test.mjs`). `src=` 외부 `.d2` 파일은 이 처리를 받지 않는다.
+- **링크 클릭은 이동만 하고, 그 밖의 영역을 누르면 확대된다.** 둘 다 `MarkdownContent.astro`의
+  스크립트가 맡는다 — 링크는 click 전파를 끊어 확대가 같이 열리지 않게 하고, 그림의 나머지 영역은
+  플러그인의 확대 버튼을 대신 누른다(D2 SVG는 svg가 한 겹 중첩돼 있어 플러그인이 안쪽 클릭을
+  확대로 인식하지 못한다). 확대 dialog 안에서는 링크를 누르면 닫히면서 이동한다.
+- **폭 규칙은 같다.** 인라인 svg도 같은 크기로 나오고 `custom.css`가 `max-width: 100%`로 본문에
+  맞춘다. 측정은 `scripts/d2-measure.mjs`가 펜스 속성과 무관하게 같은 값을 찍는다. 펜스 속성은
+  `title`·`layout`·`pad`·`sketch`·`theme`·`darkTheme`·`target`·`animateInterval`·`appendix`·`inline`만
+  허용되고, 그 밖의 키는 오타로 보고 빌드가 멈춘다.
+- **툴팁은 호버 전용이다.** 터치 화면과 검색에는 안 잡히므로 핵심은 라벨과 본문에 적고, 툴팁은
+  보조 설명에만 쓴다. 다크 모드는 `<img>`와 같은 `prefers-color-scheme` 방식이라 차이가 없다.
+- **페이지 무게가 는다.** 인라인 svg는 D2가 심는 폰트 조각과 스타일시트까지 HTML에 들어가(작은 그림도
+  약 20KB) 한 페이지에 여럿 두지 않는다. 스타일시트는 Astro MDX가 `<style>`을 접어 버리는 문제를
+  `src/integrations/d2-inline.mjs`가 우회해 살려 둔 것이므로, 배경이 검게 나오면 그 플러그인부터 본다.
+- **보드(layers·scenarios·steps) 사이의 클릭 이동은 지원하지 않는다.** D2가 보드마다 별도 파일로
+  출력해 빌드 파이프라인에 실리지 않는다. 보드 하나만 보여 주려면 `target=steps.2`처럼 펜스에
+  지정하고(`src=` 외부 파일로 같은 원본을 공유할 수 있다), 자동 전환이 필요하면
+  `animateInterval=1200`을 준다 — 둘 다 `<img>`에서 동작한다.
+- **`<img>`를 유지한 채 링크·툴팁 내용만 남기려면** 펜스에 `appendix=true`를 준다. D2가 그림 아래에
+  번호 붙은 목록을 텍스트로 그려 넣는다. 대화형은 아니지만 참고 링크 한두 개면 충분하다.
+
+## grid-rows · grid-columns — elk에서 컨테이너 안 방향을 잡는 우회로
+
+elk에서 컨테이너 안에 `direction`은 못 줘도(위 레이아웃 규칙) `grid-rows`/`grid-columns`를 주면 자식이
+그 모양으로 배열된다. `layout=tala`를 쓰지 않을 때 "가로 레인을 세로로 쌓는" 배치를 만드는 수단이다 —
 루트 `grid-rows: N`은 컨테이너 N개를 세로로 쌓고, 루트 `grid-columns: 2`는 엣지 없는 컨테이너
 둘을 나란히 세운다.
 

@@ -3,12 +3,12 @@
 //   node scripts/d2-measure.mjs <파일.mdx> [<파일.mdx> …]          폭·높이만 출력
 //   node scripts/d2-measure.mjs --png <파일.mdx> [<파일.mdx> …]    블록별 PNG를 .d2-measure/에 저장
 //
-// astro-d2가 쓰는 것과 같은 native D2 v0.8.2 CLI를 같은 옵션(elk · pad 40 · theme 0/200)으로
-// 직접 호출하므로 결과 SVG의 width/height가 빌드 산출물과 픽셀 단위로 일치한다.
+// 빌드가 쓰는 자체 D2 integration(src/integrations/d2.mjs)과 같은 native D2 v0.9.0 CLI를 같은 옵션
+// 파싱·인자 조립 코드로 직접 호출하므로 결과 SVG의 width/height가 빌드 산출물과 픽셀 단위로 일치한다.
 // `npm run check` 전체 빌드 대신 파일 하나만 빠르게 확인할 때 쓴다.
-// 옵션 기본값을 바꾸면 astro.config.mjs의 astroD2() 설정과 같이 맞춘다.
+// 기본값은 integration의 defaultD2Options 하나다. astro.config.mjs가 같은 값을 넘기는지 확인한다.
 //
-// native CLI도 astro.config.mjs와 같은 prepareD2()를 거치므로 시스템 전역 D2에는 의존하지 않는다.
+// native CLI도 astro.config.mjs와 같은 준비 함수를 거치므로 시스템 전역 D2에는 의존하지 않는다.
 // 일반 측정의 SVG는 OS 임시 디렉터리에 만들고, --png일 때만 .d2-measure/에 남긴다.
 //
 // 이슈 #2에서 확인된 PNG 함정을 코드에 반영해 뒀다:
@@ -27,21 +27,13 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { prepareD2 } from './prepare-d2.mjs';
+import { d2Arguments, parseD2Attributes } from '../src/integrations/d2.mjs';
 
 const scriptPath = fileURLToPath(import.meta.url);
 const repositoryRoot = path.resolve(path.dirname(scriptPath), '..');
 const outputRoot = path.join(repositoryRoot, '.d2-measure');
 const CONTENT_WIDTH = 632;
 const REDESIGN_WIDTH = 900;
-
-// astro.config.mjs의 astroD2() 옵션과 같은 값.
-const defaultOptions = {
-	layout: 'elk',
-	pad: 40,
-	sketch: false,
-	theme: '0',
-	darkTheme: '200',
-};
 
 // 내부용: Pango abort를 격리하기 위해 래스터화 한 건만 자식 프로세스로 수행한다.
 if (process.argv[2] === '--rasterize') {
@@ -82,41 +74,6 @@ function extractD2Blocks(source) {
 	return blocks;
 }
 
-function optionsFor(attributeText) {
-	const options = { ...defaultOptions };
-	const attributePattern =
-		/(?<key>[^\s"'=]+)=(?:(?<plain>[^\s"']+)|'(?<single>[^']+)'|"(?<double>[^"]+)")|(?<truthy>[^\s"'=]+)/g;
-	for (const match of attributeText.matchAll(attributePattern)) {
-		const { key: assignedKey, plain, single, double, truthy } = match.groups;
-		const key = truthy ?? assignedKey;
-		const value = truthy ? 'true' : (plain ?? single ?? double);
-		if (key === 'layout') options.layout = value;
-		if (key === 'pad') options.pad = Number(value);
-		if (key === 'sketch') options.sketch = value === 'true';
-		if (key === 'theme') options.theme = value;
-		if (key === 'darkTheme') options.darkTheme = value;
-		if (key === 'animateInterval') options.animateInterval = value;
-		if (key === 'target') options.target = value === 'root' ? '' : value;
-		if (key === 'appendix') options.appendix = value === 'true';
-	}
-	return options;
-}
-
-function d2Args(options, outputPath) {
-	const args = [
-		`--layout=${options.layout}`,
-		`--theme=${options.theme}`,
-		`--sketch=${options.sketch}`,
-		`--pad=${options.pad}`,
-	];
-	if (options.darkTheme !== 'false') args.push(`--dark-theme=${options.darkTheme}`);
-	if (options.animateInterval) args.push(`--animate-interval=${options.animateInterval}`);
-	if (options.target !== undefined) args.push(`--target=${options.target}`);
-	if (options.appendix) args.push('--force-appendix');
-	args.push('-', outputPath);
-	return args;
-}
-
 if (renderPng) fs.mkdirSync(outputRoot, { recursive: true });
 const temporaryOutputRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'study-note-d2-measure-'));
 
@@ -130,13 +87,13 @@ try {
 			continue;
 		}
 		for (const [index, block] of blocks.entries()) {
-			// astro-d2 산출물과 같은 0-기준 번호(<slug>-<i>.svg)를 쓴다.
+			// 빌드 산출물과 같은 0-기준 번호(<slug>-<i>.svg)를 쓴다.
 			const label = `${file} #${index}`;
 			const svgPath = renderPng
 				? path.join(outputRoot, `${baseName}-${index}.svg`)
 				: path.join(temporaryOutputRoot, `${baseName}-${index}.svg`);
 			try {
-				const child = spawnSync(d2Binary, d2Args(optionsFor(block.attributes), svgPath), {
+				const child = spawnSync(d2Binary, d2Arguments(parseD2Attributes(block.attributes), svgPath), {
 					cwd: path.dirname(absolutePath),
 					encoding: 'utf8',
 					input: block.body,

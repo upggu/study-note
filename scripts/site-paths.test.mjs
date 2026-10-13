@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { normalizeBase, stripBase, withBase } from '../src/utils/site-path.mjs';
-import { remarkSitePaths } from '../src/integrations/site-paths.mjs';
+import { remarkSitePaths, rewriteD2Links } from '../src/integrations/site-paths.mjs';
 import { checkSite } from './check-links.mjs';
 
 for (const base of ['/', '/study-notes/', '/team/notes/']) {
@@ -51,6 +51,30 @@ test('remark rewrites authored links while leaving examples, expressions and com
 	assert.equal(tree.children[8].value, '<a href="/guide/">example</a>');
 	assert.equal(tree.children[9].value, '/guide/');
 	assert.equal(tree.children[10].attributes[0].value, '/notes/images/a.png 1x, /notes/images/b.png 2x');
+});
+
+test('d2 fences get base on link: values only; labels, external links and board links stay', () => {
+	const source = [
+		'a: 노드 { link: /guide/; tooltip: 설명 link: /not-a-link/ }',
+		'b.link: "/guide/#절"',
+		"c: { link: 'https://example.com/x' }",
+		'd: { link: layers.detail }',
+		'e: "link: /in-label/"',
+	].join('\n');
+	assert.equal(rewriteD2Links(source, '/notes/'), [
+		'a: 노드 { link: /notes/guide/; tooltip: 설명 link: /notes/not-a-link/ }',
+		'b.link: "/notes/guide/#절"',
+		"c: { link: 'https://example.com/x' }",
+		'd: { link: layers.detail }',
+		'e: "link: /notes/in-label/"',
+	].join('\n'));
+	const tree = { children: [
+		{ type: 'code', lang: 'd2', value: 'a: { link: /guide/ }' },
+		{ type: 'code', lang: 'text', value: 'a: { link: /guide/ }' },
+	] };
+	remarkSitePaths({ base: '/notes/' })(tree);
+	assert.equal(tree.children[0].value, 'a: { link: /notes/guide/ }');
+	assert.equal(tree.children[1].value, 'a: { link: /guide/ }');
 });
 
 test('artifact checker resolves nested base, assets, srcset, CSS, canonical and encoded anchors', (t) => {

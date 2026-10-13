@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 
-// Build sequentially: astro-d2 regenerates public/d2 for each base.
+// Build sequentially: the D2 integration regenerates public/d2 for each base.
 // Keep dist/ for the normal site; these verification artifacts stay under .astro/.
 for (const base of ['/study-notes/', '/team/notes/']) {
 	console.log(`\n하위 경로 검증: ${base}`);

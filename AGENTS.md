@@ -109,9 +109,9 @@ Astro Starlight 기반 개인 스터디 노트 사이트. 슬라이드가 아니
 
 ## 절대 깨뜨리면 안 되는 것
 
-- `astro.config.mjs`의 integration은 `sitePaths()` → `astroD2()` → `starlight()` 순서를 유지한다.
-  `astroD2()`가 `starlight()`보다 먼저 와야 D2 펜스를 가로채고, `sitePaths()`가 그보다 먼저 와야
-  astro-d2가 base를 붙인 URL을 다시 변환하지 않는다.
+- `astro.config.mjs`의 integration은 `sitePaths()` → `d2()` → `starlight()` 순서를 유지한다.
+  `d2()`(자체 integration, `src/integrations/d2.mjs`)가 `starlight()`보다 먼저 와야 D2 펜스를 가로채고,
+  `sitePaths()`가 그보다 먼저 와야 펜스 안 `link:` 값에 base를 붙인 뒤 SVG로 바뀐다.
 - 모든 본문 MDX는 같은 폴더 `_deck.mjs`의 `sidebar[].pages`에 정확히 한 번 등록한다. 그룹·페이지는
   배열 순서대로 표시하고 덱 `index.mdx`는 목록에 넣지 않는다. 파일명을 바꾸면 `sidebar`·`map`·본문 링크를 함께 확인한다.
 - 랜딩(`/`)은 어느 topic에도 속하지 않는다. topic 밖 페이지는 plugin `exclude`에 추가한다.

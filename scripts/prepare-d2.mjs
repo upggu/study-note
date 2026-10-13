@@ -1,6 +1,6 @@
-// astro-d2가 사용할 공식 D2 standalone 바이너리를 준비한다.
+// 자체 D2 integration(src/integrations/d2.mjs)과 scripts/d2-measure.mjs가 쓸 공식 D2 standalone 바이너리를 준비한다.
 //
-// - 버전과 플랫폼별 archive SHA-256은 D2 v0.8.2 공식 SHA256SUMS에 고정한다.
+// - 버전과 플랫폼별 archive SHA-256은 D2 v0.9.0 공식 SHA256SUMS에 고정한다.
 // - Cloudflare Pages가 Astro build cache로 보존하는 node_modules/.astro 아래에 둔다.
 // - archive는 임시 디렉터리에서 다운로드·검증·압축 해제하고, 검증된 바이너리만
 //   같은 파일시스템 안에서 rename해 캐시에 원자적으로 반영한다.
@@ -24,30 +24,30 @@ import { pipeline } from 'node:stream/promises';
 import { promisify } from 'node:util';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-export const D2_VERSION = 'v0.8.2';
+export const D2_VERSION = 'v0.9.0';
 
 const releaseBaseUrl = `https://github.com/d2lang/d2/releases/download/${D2_VERSION}`;
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const cacheRoot = path.join(repositoryRoot, 'node_modules', '.astro', 'd2', D2_VERSION);
 const execFileAsync = promisify(execFile);
 
-// https://github.com/d2lang/d2/releases/download/v0.8.2/SHA256SUMS
+// https://github.com/d2lang/d2/releases/download/v0.9.0/SHA256SUMS
 const releaseAssets = Object.freeze({
 	'linux-x64': {
-		archive: 'd2-v0.8.2-linux-amd64.tar.gz',
-		sha256: '0ea49e35f17c3ac00ffa5d0a1fa571f5c344cd38127dbaa4bf6158fcd0c7bfb0',
+		archive: 'd2-v0.9.0-linux-amd64.tar.gz',
+		sha256: '5669ddc46b99e942cc96078f4a4e36d5e62103348f4c05179ede27802fdd87a9',
 	},
 	'linux-arm64': {
-		archive: 'd2-v0.8.2-linux-arm64.tar.gz',
-		sha256: 'bf1585cebf8496690668dc135dfd469068e3ae3eb38cecdc1f7d7835cdbc1228',
+		archive: 'd2-v0.9.0-linux-arm64.tar.gz',
+		sha256: 'ac2c028697199479acb321db1e3d68caee9f2ba492ed73caa3cd13f3829bf913',
 	},
 	'darwin-x64': {
-		archive: 'd2-v0.8.2-macos-amd64.tar.gz',
-		sha256: '6c7b7a09278b131664cbc5e715dac0ee849c3f785ffc9dfaab2df6b1f91bf8ed',
+		archive: 'd2-v0.9.0-macos-amd64.tar.gz',
+		sha256: 'cad39576a480d6bb02ea142fef1726647914b0d2da51ccc9b30b660a2b1babf0',
 	},
 	'darwin-arm64': {
-		archive: 'd2-v0.8.2-macos-arm64.tar.gz',
-		sha256: '73ddb07c636bd5c5723e4bf8569a90b7329ea35dc32af2155650e1f572e823b2',
+		archive: 'd2-v0.9.0-macos-arm64.tar.gz',
+		sha256: 'eaf6c0c143e56dd9fa97bfb6df25ea9c1ebce40245f056a0768cf1a6c15d3064',
 	},
 });
 
@@ -196,7 +196,7 @@ async function publishCache(stagedCache, cacheDirectory, temporaryDirectory) {
 }
 
 /**
- * 현재 플랫폼의 공식 D2 v0.8.2 바이너리를 검증해 준비하고, d2가 든 bin 디렉터리를 반환한다.
+ * 현재 플랫폼의 공식 D2 v0.9.0 바이너리를 검증해 준비하고, d2가 든 bin 디렉터리를 반환한다.
  */
 export async function prepareD2() {
 	const asset = resolveReleaseAsset();

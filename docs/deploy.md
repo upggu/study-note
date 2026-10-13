@@ -61,18 +61,18 @@ GitHub의 `Disable workflow` 상태는 YAML 기본값이 아니라 GitHub에서 
 
 ## D2 native 바이너리는 어떻게 준비하나
 
-D2 다이어그램은 **native D2 `v0.8.2`**로 빌드한다. 시스템 전역 설치나 Cloudflare 대시보드
-설정에 기대지 않고, `astro.config.mjs`가 로드될 때 `scripts/prepare-d2.mjs`를 먼저 호출한다.
-그래서 `npx astro dev --background`·`npm run build`·`npm run check` 어느 진입점이든 같은 준비
-경로를 거친다.
+D2 다이어그램은 **native D2 `v0.9.0`**로 빌드한다. 시스템 전역 설치나 Cloudflare 대시보드
+설정에 기대지 않고, 자체 D2 integration(`src/integrations/d2.mjs`)이 `astro:config:setup`에서
+`scripts/prepare-d2.mjs`를 호출해 바이너리를 준비한 뒤 절대 경로로 실행한다. 그래서
+`npx astro dev --background`·`npm run build`·`npm run check` 어느 진입점이든 같은 준비 경로를 거친다.
 
 - 현재 플랫폼에 맞는 공식 standalone archive를 받는다. 지원 조합은 macOS arm64/x64와
   Linux x86_64/arm64이며, Cloudflare Pages는 `linux-x64`를 쓴다.
 - 버전과 네 archive의 SHA-256은 스크립트에 고정돼 있다. 다운로드는 임시 디렉터리에서 하고,
-  체크섬 검증 → 압축 해제 → 실행 권한 설정 → `d2 --version`이 정확히 `v0.8.2`인지 확인한 뒤
+  체크섬 검증 → 압축 해제 → 실행 권한 설정 → `d2 --version`이 정확히 `v0.9.0`인지 확인한 뒤
   검증된 디렉터리만 rename으로 캐시에 반영한다.
-- 캐시는 `node_modules/.astro/d2/v0.8.2/<platform-arch>/bin/d2`다. 설정을 읽을 때마다 캐시된
-  파일의 실행 권한과 버전을 다시 확인하고, 그 `bin`을 현재 프로세스의 `PATH` 앞에 붙인다.
+- 캐시는 `node_modules/.astro/d2/v0.9.0/<platform-arch>/bin/d2`다. 설정을 읽을 때마다 캐시된
+  파일의 실행 권한과 버전을 다시 확인하고, integration이 그 경로의 `d2`를 직접 실행한다.
 - Cloudflare Pages에서 build cache 기능이 켜져 있으면 Astro용
   [`node_modules/.astro`를 보존한다](https://developers.cloudflare.com/pages/configuration/build-caching/).
   캐시가 복원되면 다운로드를 건너뛰고, 없거나 검증에 실패하면 다시 설치하므로 이 대시보드

@@ -1,39 +1,30 @@
 // @ts-check
-import path from 'node:path';
 import { defineConfig } from 'astro/config';
 import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
 import starlightSidebarTopics from 'starlight-sidebar-topics';
 import starlightThemeRapide from 'starlight-theme-rapide';
 import starlightImageZoom from 'starlight-image-zoom';
-import astroD2 from 'astro-d2';
-import { prepareD2 } from './scripts/prepare-d2.mjs';
+import d2 from './src/integrations/d2.mjs';
 import { topics } from './src/data/decks.mjs';
 import { site, base } from './src/config/site.mjs';
 import sitePaths from './src/integrations/site-paths.mjs';
-
-// dev/build/check 어느 진입점에서도 고정된 native D2를 먼저 준비한다.
-const d2BinDirectory = await prepareD2();
-const currentPath = process.env.PATH?.split(path.delimiter).filter(Boolean) ?? [];
-process.env.PATH = [d2BinDirectory, ...currentPath.filter((entry) => entry !== d2BinDirectory)].join(
-	path.delimiter,
-);
+import { rehypeD2Inline } from './src/integrations/d2-inline.mjs';
 
 export default defineConfig({
 	// 대표 주소와 게시 경로는 src/config/site.mjs가 소유한다. canonical 링크와 sitemap의 기준이므로
 	// 배포 전에 그 파일의 site 기본값을 실제 대표 주소로 바꾼다.
 	site,
 	base,
-	// starlight-image-zoom 0.15는 Astro 7의 Sätteri를 아직 지원하지 않는다.
-	markdown: { processor: unified() },
+	// unified 프로세서를 명시한다. site-paths integration이 unified의 remarkPlugins 배열에 직접 끼어들기
+	// 때문이며, Astro 7 기본값인 Sätteri로 가려면 그 integration을 mdastPlugins 방식으로 먼저 이식해야 한다.
+	// rehypeD2Inline은 inline D2(```d2 inline=true)의 <style>이 MDX에서 접히지 않게 지킨다 — 파일 머리 주석 참고.
+	markdown: { processor: unified({ rehypePlugins: [rehypeD2Inline] }) },
 	integrations: [
 		sitePaths(),
-		// 다이어그램 integration은 starlight보다 먼저 와야 D2 코드 펜스를 가로챈다.
-		astroD2({
-			layout: 'elk',
-			pad: 40,
-			theme: { default: '0', dark: '200' },
-		}),
+		// 자체 D2 integration(src/integrations/d2.mjs). site-paths 뒤, starlight 앞에 둔다 —
+		// site-paths가 먼저 펜스 안 link 값에 base를 붙이고, 그다음 여기서 펜스를 SVG로 바꾼다.
+		d2({ layout: 'elk', pad: 40, theme: '0', darkTheme: '200' }),
 		starlight({
 			title: 'Study Note',
 			routeMiddleware: './src/route-middleware.ts',

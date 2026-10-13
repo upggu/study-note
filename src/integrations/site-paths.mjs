@@ -3,13 +3,22 @@ import { fileURLToPath } from 'node:url';
 import parseSrcset from 'parse-srcset';
 import { withBase } from '../utils/site-path.mjs';
 
-// Transform authored nodes before astro-d2 creates URLs with its own base.
+// Transform authored nodes before the D2 integration (src/integrations/d2.mjs) creates URLs with its own base.
 // Custom components own their URL props; only native elements and Starlight link components
-// are handled here. Code fences/inline code and JS expressions are not rewritten.
+// are handled here. Code fences/inline code and JS expressions are not rewritten, with one
+// exception: `link:` values inside ```d2 fences, because D2 renders them into <a href>
+// (inline SVG) and authors write base-less document URLs there like everywhere else.
+const d2LinkPattern = /\blink\s*:\s*(["']?)(\/[^\s"';}]*)\1/g;
+
+export function rewriteD2Links(source, base) {
+	return source.replace(d2LinkPattern, (match, quote, url) => `link: ${quote}${withBase(url, base)}${quote}`);
+}
+
 export function remarkSitePaths({ base }) {
 	return (tree) => {
 		function walk(node) {
 			if (['link', 'image', 'definition'].includes(node.type)) node.url = withBase(node.url, base);
+			if (node.type === 'code' && node.lang === 'd2') node.value = rewriteD2Links(node.value, base);
 			if (['mdxJsxFlowElement', 'mdxJsxTextElement'].includes(node.type)) {
 				const attributes = {
 					a: ['href'], img: ['src', 'srcset', 'srcSet'], source: ['src', 'srcset', 'srcSet'],

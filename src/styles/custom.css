@@ -66,3 +66,11 @@ main:has([data-deck-catalog]) > .content-panel + .content-panel {
     --sl-content-inline-start: 0rem;
   }
 }
+
+/* inline D2 — 펜스에 inline=true를 준 그림(docs/d2-authoring.md "링크·툴팁이 필요한 그림").
+   외부 <img>는 Starlight이 본문 폭에 맞춰 주지만 인라인 <svg>는 width/height 속성 크기 그대로
+   그려지므로 같은 규칙을 직접 준다(크기 속성과 data-d2-inline은 src/integrations/d2.mjs가 단다). */
+.sl-markdown-content svg[data-d2-inline] {
+  max-width: 100%;
+  height: auto;
+}
