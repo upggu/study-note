@@ -82,7 +82,8 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
 - **다이어그램은 전부 D2다** (규칙은 [d2-authoring.md](d2-authoring.md)).
   자체 integration `src/integrations/d2.mjs`가 빌드 시 SVG 파일을 만들고 `<img>`로 넣으므로 문법 오류를
   빌드가 잡는다. 기본 `<img>` 출력을 유지해야 다크 모드와 자동 확대가 함께 안정적으로 동작한다.
-  D2 `link:`·`tooltip:`이 필요한 그림만 펜스 단위 `inline=true` + `<Zoom>`으로 쓴다(2026-10-13).
+  D2 `link:`·`tooltip:`을 쓰는 그림은 펜스 단위 `inline=true` + `<Zoom>`으로 쓴다(2026-10-13).
+  `style.animated`와 보드 애니메이션(`animateInterval`)은 `<img>`에서도 돈다.
   이를 위해 `MarkdownContent.astro`가 그림 클릭을 확대 버튼으로 넘기고 `svg[data-d2-inline] a`의 click
   전파를 끊으며(D2의 중첩 svg 때문에 플러그인의 클릭 처리가 닿지 않는다), `custom.css`가 인라인
   svg를 본문 폭에 맞추며, `site-paths`가 `d2` 펜스 안 `link: /…`에 base를 붙인다.
