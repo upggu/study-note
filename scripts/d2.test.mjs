@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { d2Arguments, imgHtml, inlineSvgHtml, parseD2Attributes, softenEdgeLabels, svgSize } from '../src/integrations/d2.mjs';
+import { d2Arguments, imgHtml, inlineSvgHtml, matchPageBackground, parseD2Attributes, softenEdgeLabels, svgSize } from '../src/integrations/d2.mjs';
 
 test('fence attributes: defaults, overrides, quoting, truthy flags, target root', () => {
 	assert.deepEqual(parseD2Attributes(undefined), {
-		layout: 'elk', pad: 40, sketch: true, theme: '0', darkTheme: '200', title: 'Diagram', inline: false, appendix: false,
+		layout: 'elk', pad: 40, sketch: true, theme: '7', darkTheme: '200', title: 'Diagram', inline: false, appendix: false,
 	});
 	const options = parseD2Attributes(`layout=tala pad=20 title="빌드 흐름 (요약)" inline darkTheme=false target=root appendix=true`);
 	assert.equal(options.layout, 'tala');
@@ -20,7 +20,7 @@ test('fence attributes: defaults, overrides, quoting, truthy flags, target root'
 
 test('CLI arguments mirror the fence options and end with stdin and the output path', () => {
 	assert.deepEqual(d2Arguments(parseD2Attributes('pad=40'), '/tmp/out.svg'), [
-		'--layout=elk', '--theme=0', '--sketch=true', '--pad=40', '--dark-theme=200', '-', '/tmp/out.svg',
+		'--layout=elk', '--theme=7', '--sketch=true', '--pad=40', '--dark-theme=200', '-', '/tmp/out.svg',
 	]);
 	const args = d2Arguments(parseD2Attributes('darkTheme=false animateInterval=1200 target=steps.2 appendix=true'), 'o.svg');
 	assert.ok(!args.some((argument) => argument.startsWith('--dark-theme')));
@@ -61,4 +61,14 @@ test('edge labels: the mask is removed and a translucent theme-colored box is pl
 	assert.ok(out.includes('<text x="50" y="30" class="text fill-N1">'));
 	assert.equal(out.match(/fill-opacity/g).length, 1);
 	assert.equal(softenEdgeLabels('<svg><text x="1" y="2">no mask</text></svg>'), '<svg><text x="1" y="2">no mask</text></svg>');
+});
+
+test('diagram background follows the page: first fill-N7 rule is light, the one in the dark media block is dark', () => {
+	const svg = '<style>.d2-1 .fill-N7{fill:#FFFFFF;} .d2-1 .fill-N6{fill:#EEE;} @media screen and (prefers-color-scheme:dark){.d2-1 .fill-N7{fill:#1E1E2E;}}</style><rect class="fill-N7"/>';
+	assert.equal(
+		matchPageBackground(svg, { light: '#fffbeb', dark: '#282a36' }),
+		'<style>.d2-1 .fill-N7{fill:#fffbeb;} .d2-1 .fill-N6{fill:#EEE;} @media screen and (prefers-color-scheme:dark){.d2-1 .fill-N7{fill:#282a36;}}</style><rect class="fill-N7"/>',
+	);
+	assert.equal(matchPageBackground('.fill-N7{fill:#FFFFFF;}', { light: '#fffbeb', dark: '#282a36' }), '.fill-N7{fill:#fffbeb;}');
+	assert.equal(matchPageBackground('<svg/>', { light: '#fffbeb', dark: '#282a36' }), '<svg/>');
 });

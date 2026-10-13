@@ -9,7 +9,7 @@
 | 변경 | 방법 | 파일 |
 |---|---|---|
 | 덱 = topic 사이드바 | 덱별 설정·MDX를 파생 loader로 합성 + [starlight-sidebar-topics](https://starlight-sidebar-topics.netlify.app/) | `src/content/docs/*/_deck.mjs` · `src/data/load-decks.mjs` · `astro.config.mjs` |
-| 테마 (Vitesse 계열) | [starlight-theme-rapide](https://starlight-theme-rapide.vercel.app/) 플러그인 | `astro.config.mjs` |
+| 테마 (Dracula · 라이트는 Alucard) | [starlight-theme-dracula](https://wasi-master.github.io/dracula-for-starlight/) 플러그인, accent 기본 보라 | `astro.config.mjs` |
 | Markdown 프로세서 | `site-paths` integration 호환을 위해 `unified()` 명시 | `astro.config.mjs` |
 | D2 펜스 렌더 (다이어그램) | 자체 integration + native D2 v0.9.0 (**starlight보다 먼저**) | `src/integrations/d2.mjs` · `scripts/prepare-d2.mjs` · `astro.config.mjs` |
 | 이미지 클릭 확대 | [starlight-image-zoom](https://starlight-image-zoom.vercel.app/) 플러그인 + 기존 override 합성 | `astro.config.mjs` · `MarkdownContent.astro` · `SourceFigure.astro` |
@@ -123,7 +123,13 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
 
 ## 외관 — 세 겹
 
-- **테마**: `starlight-theme-rapide` (코드 블록 테마도 Vitesse 계열로 함께 바뀐다)
+- **테마**: `starlight-theme-dracula` (2026-10-14, Rapide에서 교체). 다크는 Dracula, 라이트는 공식 밝은 변형
+  Alucard(크림색 배경 `#fffbeb`)이고 코드 블록은 두 모드 모두 Dracula 구문 테마의 검은 바탕이다.
+  D2 테마도 여기에 맞춰 라이트 7 Aubergine, 다크 200 Dark Mauve를 쓰고, integration 후처리(`matchPageBackground`)가
+  D2 배경색을 페이지 배경(`#fffbeb`·`#282a36`, `astro.config.mjs`의 `background`)으로 바꿔 그림이 흰 상자로 뜨지
+  않게 한다. 테마를 바꾸면 이 두 색도 같이 바꾼다. 의미 팔레트 여섯 색은 바꾸지 않았다.
+  D2 `<img>`의 다크 전환은 OS가 아니라 Starlight 토글을 따른다 — 토글이 html에 `color-scheme`을 걸고
+  브라우저가 그 값을 `<img>` 안 SVG의 `prefers-color-scheme`에 전달하기 때문이다.
 - **폰트**: Pretendard Variable 셀프호스팅. `customCss`의 **dynamic subset** CSS가 핵심이다
   — 한글 폰트는 웨이트당 수 MB라, 쓰인 글자의 조각만 내려받는 이 방식이 아니면 못 쓴다
 - **본문 폭**: `--sl-content-width: 55rem` (기본 45rem은 다이어그램·표 위주 문서에 좁다)

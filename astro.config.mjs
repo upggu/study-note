@@ -3,7 +3,7 @@ import { defineConfig } from 'astro/config';
 import { unified } from '@astrojs/markdown-remark';
 import starlight from '@astrojs/starlight';
 import starlightSidebarTopics from 'starlight-sidebar-topics';
-import starlightThemeRapide from 'starlight-theme-rapide';
+import starlightThemeDracula from 'starlight-theme-dracula';
 import starlightImageZoom from 'starlight-image-zoom';
 import d2 from './src/integrations/d2.mjs';
 import { topics } from './src/data/decks.mjs';
@@ -24,7 +24,7 @@ export default defineConfig({
 		sitePaths(),
 		// 자체 D2 integration(src/integrations/d2.mjs). site-paths 뒤, starlight 앞에 둔다 —
 		// site-paths가 먼저 펜스 안 link 값에 base를 붙이고, 그다음 여기서 펜스를 SVG로 바꾼다.
-		d2({ layout: 'elk', pad: 40, sketch: true, theme: '0', darkTheme: '200' }),
+		d2({ layout: 'elk', pad: 40, sketch: true, theme: '7', darkTheme: '200', background: { light: '#fffbeb', dark: '#282a36' } }),
 		starlight({
 			title: 'Study Note',
 			routeMiddleware: './src/route-middleware.ts',
@@ -47,7 +47,9 @@ export default defineConfig({
 			},
 			plugins: [
 				starlightImageZoom(),
-				starlightThemeRapide(),
+				// 사이트 테마 — Dracula(다크)·Alucard(라이트), accent는 기본 보라. 2026-10-14에 Rapide에서 교체.
+				// D2 테마(라이트 7 Aubergine · 다크 200 Dark Mauve)도 이 톤에 맞춘 값이다.
+				starlightThemeDracula(),
 				starlightSidebarTopics(topics, {
 					// 랜딩 페이지는 어느 topic에도 속하지 않는다.
 					exclude: ['/'],

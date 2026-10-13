@@ -6,7 +6,7 @@
 // 빌드가 쓰는 자체 D2 integration(src/integrations/d2.mjs)과 같은 native D2 v0.9.0 CLI를 같은 옵션
 // 파싱·인자 조립 코드로 직접 호출하므로 결과 SVG의 width/height가 빌드 산출물과 픽셀 단위로 일치한다.
 // `npm run check` 전체 빌드 대신 파일 하나만 빠르게 확인할 때 쓴다.
-// 기본값(elk · pad 40 · sketch · theme 0/200)은 integration의 defaultD2Options 하나다. astro.config.mjs가 같은 값을 넘기는지 확인한다.
+// 기본값(elk · pad 40 · sketch · theme 7/200)은 integration의 defaultD2Options 하나다. astro.config.mjs가 같은 값을 넘기는지 확인한다.
 //
 // native CLI도 astro.config.mjs와 같은 준비 함수를 거치므로 시스템 전역 D2에는 의존하지 않는다.
 // 일반 측정의 SVG는 OS 임시 디렉터리에 만들고, --png일 때만 .d2-measure/에 남긴다.

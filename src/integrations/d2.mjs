@@ -17,13 +17,15 @@ import { prepareD2 } from '../../scripts/prepare-d2.mjs';
 // - 옵션 파싱·CLI 인자 조립은 scripts/d2-measure.mjs와 공유한다. 측정값이 빌드 산출물과 같아야 한다.
 // - 펜스 안 `link: /…`의 base 처리는 앞서 실행되는 site-paths의 remark 플러그인이 맡는다.
 // - d2는 src/d2/를 cwd로 실행한다. 로고는 src/d2/icons/에 두고 펜스에서 `icon: icons/<이름>.svg`로 쓴다.
-// - 렌더된 SVG는 softenEdgeLabels로 후처리해 엣지 라벨 뒤에서도 선이 보이게 한다.
+// - 렌더된 SVG는 후처리한다: softenEdgeLabels(엣지 라벨 뒤에서도 선이 보이게)와
+//   matchPageBackground(D2 배경색을 사이트 테마의 페이지 배경에 맞춰 그림이 흰 상자로 뜨지 않게).
 
 export const defaultD2Options = Object.freeze({
 	layout: 'elk',
 	pad: 40,
 	sketch: true,
-	theme: '0',
+	// 사이트 테마(Dracula/Alucard)에 맞춘 값. 라이트 7 Aubergine(보라 accent), 다크 200 Dark Mauve.
+	theme: '7',
 	darkTheme: '200',
 });
 
@@ -130,9 +132,29 @@ export function softenEdgeLabels(svg, opacity = 0.6) {
 	});
 }
 
+/**
+ * 사이트 테마의 페이지 배경색. D2의 배경 클래스(fill-N7)를 이 색으로 바꿔 그림이 본문에 녹아들게 한다.
+ * 라이트는 Alucard의 크림색, 다크는 Dracula의 배경이다(starlight-theme-dracula). 테마를 바꾸면 여기를 같이 바꾼다.
+ */
+export const pageBackground = Object.freeze({ light: '#fffbeb', dark: '#282a36' });
+
+/**
+ * D2 SVG의 배경색 규칙을 페이지 배경으로 바꾼다. D2는 `.fill-N7{fill:…}`을 라이트 블록에 한 번,
+ * `@media (prefers-color-scheme: dark)` 블록에 한 번 쓰므로 첫 번째를 라이트, 두 번째를 다크로 본다.
+ * fill-N7은 배경 사각형과 라벨 배경 상자가 함께 쓰므로 둘이 같은 색으로 맞춰진다.
+ */
+export function matchPageBackground(svg, background = pageBackground) {
+	let index = 0;
+	return svg.replace(/(\.fill-N7\{fill:)#[0-9A-Fa-f]{3,8}(;?\})/g, (match, head, tail) => {
+		const color = index === 0 ? background.light : index === 1 ? background.dark : undefined;
+		index += 1;
+		return color ? `${head}${color}${tail}` : match;
+	});
+}
+
 /** 렌더 직후 SVG 파일에 적용하는 후처리. <img>·inline 양쪽과 d2-measure의 PNG 미리보기가 같은 결과를 본다. */
-export function postprocessD2Svg(svg) {
-	return softenEdgeLabels(svg);
+export function postprocessD2Svg(svg, { background = pageBackground } = {}) {
+	return matchPageBackground(softenEdgeLabels(svg), background);
 }
 
 /** D2를 stdin 입력으로 실행한다. 실패하면 stderr를 메시지로 던진다. */
@@ -153,10 +175,10 @@ function runD2(binary, args, source, cwd) {
 }
 
 /** 펜스 하나를 D2로 변환해 후처리까지 마친 SVG를 outputPath에 저장하고 그 문자열을 돌려준다. */
-export async function renderD2({ binary, source, options, outputPath, cwd }) {
+export async function renderD2({ binary, source, options, outputPath, cwd, background }) {
 	await fs.mkdir(path.dirname(outputPath), { recursive: true });
 	await runD2(binary, d2Arguments(options, outputPath), source, cwd);
-	const svg = postprocessD2Svg(await fs.readFile(outputPath, 'utf8'));
+	const svg = postprocessD2Svg(await fs.readFile(outputPath, 'utf8'), { background });
 	await fs.writeFile(outputPath, svg);
 	return svg;
 }
@@ -173,7 +195,7 @@ function outputRelativePath(root, filePath, index) {
 	return path.join(parsed.dir, `${parsed.name}-${index}.svg`);
 }
 
-export function remarkD2({ binary, base, publicDir, root, outputDir = 'd2', defaults = defaultD2Options }) {
+export function remarkD2({ binary, base, publicDir, root, outputDir = 'd2', defaults = defaultD2Options, background = pageBackground }) {
 	return async (tree, file) => {
 		const fences = [];
 		visit(tree, 'code', (node, index, parent) => {
@@ -195,7 +217,7 @@ export function remarkD2({ binary, base, publicDir, root, outputDir = 'd2', defa
 				const outputPath = path.join(publicDir, outputDir, relativeOutput);
 				let svg;
 				try {
-					svg = await renderD2({ binary, source: node.value, options, outputPath, cwd: d2WorkingDirectory(root) });
+					svg = await renderD2({ binary, source: node.value, options, outputPath, cwd: d2WorkingDirectory(root), background });
 				} catch (error) {
 					throw new Error(`[D2 변환 실패] ${location}\n${error.message}`, { cause: error });
 				}
@@ -212,7 +234,7 @@ export function remarkD2({ binary, base, publicDir, root, outputDir = 'd2', defa
 	};
 }
 
-export default function d2(userOptions = {}) {
+export default function d2({ background = pageBackground, ...userOptions } = {}) {
 	const defaults = { ...defaultD2Options, ...userOptions };
 	const outputDir = 'd2';
 	return {
@@ -234,7 +256,7 @@ export default function d2(userOptions = {}) {
 					await fs.rm(dataStore, { force: true });
 					logger.info('D2 산출물과 콘텐츠 캐시를 비웠습니다.');
 				}
-				processor.options.remarkPlugins.push([remarkD2, { binary, base: config.base, publicDir, root, outputDir, defaults }]);
+				processor.options.remarkPlugins.push([remarkD2, { binary, base: config.base, publicDir, root, outputDir, defaults, background }]);
 			},
 		},
 	};

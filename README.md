@@ -78,7 +78,7 @@ AGENTS.md                     # 에이전트 작업 진입점 — Codex·Claude 
 - **이미지 확대는 [starlight-image-zoom](https://github.com/HiDeoo/starlight-image-zoom)** —
   본문 이미지와 D2 다이어그램을 클릭하면 전체 화면 dialog로 연다
 - **단계별 흐름은 `LearningFlow`** — 누가 무엇을 보관하는지 단계마다 비교하는 설명에 쓴다
-- **테마는 [starlight-theme-rapide](https://starlight-theme-rapide.vercel.app), 본문 폰트는
+- **테마는 [starlight-theme-dracula](https://wasi-master.github.io/dracula-for-starlight/)(다크 Dracula · 라이트 Alucard), 본문 폰트는
   Pretendard**(셀프호스팅, dynamic subset)
 - **루트·하위 경로 배포 모두 지원** — 본문에는 base 없는 사이트 경로를 쓰고 빌드가 게시 경로를 붙인다
 

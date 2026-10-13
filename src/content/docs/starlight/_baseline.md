@@ -23,7 +23,7 @@ Markdown·Git·터미널 명령·프론트엔드 개발을 선행 지식으로 �
 
 ## 기준 버전과 근거
 
-2026-10-13 설치·lockfile 기준: Astro 7.3.8, Starlight 0.42.6, sidebar-topics 0.9.0, image-zoom 0.16.1,
+2026-10-13 설치·lockfile 기준: Astro 7.3.8, Starlight 0.42.6, sidebar-topics 0.9.0, image-zoom 0.16.1, theme-dracula 0.1.1(2026-10-14, Rapide 대체),
 native D2 0.9.0(TALA 번들). D2 펜스 변환은 astro-d2 대신 저장소의 `src/integrations/d2.mjs`가 맡는다.
 버전 범위는 package.json, 재현 설치는 package-lock.json을 따른다.
 
