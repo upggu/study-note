@@ -88,6 +88,9 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
   inline 출력의 크기·제목·`data-d2-inline` 표시는 integration이 SVG 문자열에 직접 넣고, rehype 플러그인
   `src/integrations/d2-inline.mjs`는 D2가 심는 `<style>`이 Astro MDX에서 접히지 않게만 지킨다
   (MDX가 `<style>` 본문을 `set:html`로 접고 정적 최적화가 그 속성을 글자 그대로 직렬화하는 문제).
+- integration은 렌더된 SVG를 후처리한다(`softenEdgeLabels`): 엣지 라벨의 mask를 떼고 라벨 상자에
+  반투명 배경을 넣어 선이 라벨 뒤로 보이게 한다. d2는 `src/d2/`를 cwd로 실행하며, 로고는
+  `src/d2/icons/`에 두고 펜스에서 `icon: icons/<이름>.svg`로 쓴다(규칙은 d2-authoring.md).
 - 2026-10-13까지는 [astro-d2](https://astro-d2.vercel.app/)를 썼다. 이 레포가 쓰는 기능은 펜스 속성 몇 개와
   `<img>`/inline 출력뿐인데, astro-d2 0.14는 쓰지 않는 D2.js WebAssembly(`@d2lang/d2`, 92MB)를 빌드마다
   정적으로 로드하고, `satteri@0.9` 요구로 Starlight 0.42와 호이스팅 충돌을 일으켰으며(루트 `satteri`가
@@ -104,7 +107,7 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
   실행하므로 로컬·Cloudflare Pages 모두 시스템 전역 설치가 필요 없고 `PATH`도 건드리지 않는다.
 - archive는 임시 디렉터리에서 다운로드·checksum 검증·압축 해제하고, 실행 권한과
   `d2 --version == v0.9.0`까지 확인한 디렉터리만 원자적으로 캐시에 반영한다. 캐시 hit에서도
-  실행 권한과 버전을 다시 확인한다. 기본 레이아웃은 `elk`다.
+  실행 권한과 버전을 다시 확인한다. 기본 레이아웃은 `elk`, 손그림(sketch) 모드가 기본이다(2026-10-13).
 - 생성된 `public/d2/`는 빌드 산출물이므로 `.gitignore`에서 제외한다.
 - `starlight-image-zoom`은 일반 Markdown/MDX 이미지와 D2 `<img>`를 자동으로 감싼다.
   `<SourceFigure>`는 원문 출처 링크와 이미지 확대 동작이 충돌하지 않도록 `<Zoom>`을 직접 쓴다.

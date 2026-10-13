@@ -24,7 +24,7 @@ export default defineConfig({
 		sitePaths(),
 		// 자체 D2 integration(src/integrations/d2.mjs). site-paths 뒤, starlight 앞에 둔다 —
 		// site-paths가 먼저 펜스 안 link 값에 base를 붙이고, 그다음 여기서 펜스를 SVG로 바꾼다.
-		d2({ layout: 'elk', pad: 40, theme: '0', darkTheme: '200' }),
+		d2({ layout: 'elk', pad: 40, sketch: true, theme: '0', darkTheme: '200' }),
 		starlight({
 			title: 'Study Note',
 			routeMiddleware: './src/route-middleware.ts',

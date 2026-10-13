@@ -16,11 +16,13 @@ import { prepareD2 } from '../../scripts/prepare-d2.mjs';
 //   docs/와 scripts/d2-measure.mjs가 이 이름을 전제한다.
 // - 옵션 파싱·CLI 인자 조립은 scripts/d2-measure.mjs와 공유한다. 측정값이 빌드 산출물과 같아야 한다.
 // - 펜스 안 `link: /…`의 base 처리는 앞서 실행되는 site-paths의 remark 플러그인이 맡는다.
+// - d2는 src/d2/를 cwd로 실행한다. 로고는 src/d2/icons/에 두고 펜스에서 `icon: icons/<이름>.svg`로 쓴다.
+// - 렌더된 SVG는 softenEdgeLabels로 후처리해 엣지 라벨 뒤에서도 선이 보이게 한다.
 
 export const defaultD2Options = Object.freeze({
 	layout: 'elk',
 	pad: 40,
-	sketch: false,
+	sketch: true,
 	theme: '0',
 	darkTheme: '200',
 });
@@ -103,6 +105,36 @@ export function inlineSvgHtml(svg, { title }) {
 	return `${withoutProlog.slice(0, root.index)}${rootTag}${attributes}><title>${escapeText(title)}</title>${withoutProlog.slice(root.index + root[0].length)}`;
 }
 
+/**
+ * 엣지 라벨 뒤에서 선이 보이게 한다.
+ * D2는 연결선 라벨 자리를 SVG mask로 잘라내므로 라벨이 선을 끊어 보인다(옵션으로 끌 수 없다).
+ * mask의 검은 사각형이 곧 라벨 상자이므로, mask를 떼고 그 상자 좌표에 반투명 배경 사각형을
+ * 라벨 텍스트 앞에 넣는다. 배경색은 D2의 배경 클래스(fill-N7)를 써서 다크 테마를 그대로 따른다.
+ * 브라우저 비교(2026-10-13): mask 제거만 하면 글자 사이로 선이 지나가고, 글자 테두리(halo)는
+ * 단어 사이로 선이 토막나 보였다. 60% 배경이 선의 연속성과 가독성을 같이 지켰다.
+ */
+export function softenEdgeLabels(svg, opacity = 0.6) {
+	const mask = svg.match(/<mask\b[^>]*>(.*?)<\/mask>/s);
+	if (!mask) return svg;
+	const boxes = [...mask[1].matchAll(/<rect x="([-\d.]+)" y="([-\d.]+)" width="([-\d.]+)" height="([-\d.]+)" fill="black"/g)]
+		.map(([, x, y, width, height]) => ({ x: Number(x), y: Number(y), width: Number(width), height: Number(height) }));
+	if (boxes.length === 0) return svg;
+	const unmasked = svg.replace(/\smask="url\(#[^)]*\)"/g, '');
+	return unmasked.replace(/<text\b[^>]*>/g, (tag) => {
+		const x = Number(tag.match(/\sx="([-\d.]+)"/)?.[1]);
+		const y = Number(tag.match(/\sy="([-\d.]+)"/)?.[1]);
+		if (Number.isNaN(x) || Number.isNaN(y)) return tag;
+		const box = boxes.find((candidate) => x >= candidate.x && x <= candidate.x + candidate.width && y >= candidate.y && y <= candidate.y + candidate.height);
+		if (!box) return tag;
+		return `<rect x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="3" class="fill-N7" fill-opacity="${opacity}" />${tag}`;
+	});
+}
+
+/** 렌더 직후 SVG 파일에 적용하는 후처리. <img>·inline 양쪽과 d2-measure의 PNG 미리보기가 같은 결과를 본다. */
+export function postprocessD2Svg(svg) {
+	return softenEdgeLabels(svg);
+}
+
 /** D2를 stdin 입력으로 실행한다. 실패하면 stderr를 메시지로 던진다. */
 function runD2(binary, args, source, cwd) {
 	return new Promise((resolve, reject) => {
@@ -120,11 +152,18 @@ function runD2(binary, args, source, cwd) {
 	});
 }
 
-/** 펜스 하나를 D2로 변환해 outputPath에 저장하고 SVG 문자열을 돌려준다. */
+/** 펜스 하나를 D2로 변환해 후처리까지 마친 SVG를 outputPath에 저장하고 그 문자열을 돌려준다. */
 export async function renderD2({ binary, source, options, outputPath, cwd }) {
 	await fs.mkdir(path.dirname(outputPath), { recursive: true });
 	await runD2(binary, d2Arguments(options, outputPath), source, cwd);
-	return fs.readFile(outputPath, 'utf8');
+	const svg = postprocessD2Svg(await fs.readFile(outputPath, 'utf8'));
+	await fs.writeFile(outputPath, svg);
+	return svg;
+}
+
+/** D2 실행 디렉터리. 펜스의 `icon: icons/<이름>.svg`와 `...@<파일>` import가 이 폴더 기준으로 풀린다. */
+export function d2WorkingDirectory(root) {
+	return path.join(root, 'src', 'd2');
 }
 
 // 산출물 경로: src/content/docs/<덱>/<파일>.mdx → docs/<덱>/<파일>-<i>.svg (astro-d2의 규칙 그대로).
@@ -156,7 +195,7 @@ export function remarkD2({ binary, base, publicDir, root, outputDir = 'd2', defa
 				const outputPath = path.join(publicDir, outputDir, relativeOutput);
 				let svg;
 				try {
-					svg = await renderD2({ binary, source: node.value, options, outputPath, cwd: path.dirname(filePath) });
+					svg = await renderD2({ binary, source: node.value, options, outputPath, cwd: d2WorkingDirectory(root) });
 				} catch (error) {
 					throw new Error(`[D2 변환 실패] ${location}\n${error.message}`, { cause: error });
 				}
