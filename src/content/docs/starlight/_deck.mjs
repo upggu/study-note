@@ -32,8 +32,7 @@ export default {
       "label": "시각적으로 이해하기",
       "pages": [
         "components",
-        "d2",
-        "learning-flow"
+        "d2"
       ]
     },
     {
@@ -85,12 +84,8 @@ export default {
       "note": "이해되지 않는 관계에 맞는 표현을 고른다",
       "items": [
         [
-          "D2로 정적 다이어그램 그리기",
+          "D2로 관계와 흐름 탐색하기",
           "/starlight/d2/"
-        ],
-        [
-          "LearningFlow",
-          "/starlight/learning-flow/"
         ]
       ]
     },

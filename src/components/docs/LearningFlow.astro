@@ -10,7 +10,6 @@
  * 단계 제목은 선택기에 한 번만 보이고 진행 위치는 native progress로 표시한다.
  * 이전·다음 버튼은 선택기 양옆과 설명 아래에 두며 같은 단계 상태를 공유한다.
  * 상태·이벤트는 custom element 인스턴스에 격리. 애니메이션·자동 진행은 없다.
- * 적용 기준·검증법: docs/learning-flow-authoring.md.
  */
 import { validateFlow, type LearningFlow } from './learning-flow';
 interface Props { id: string; flow: LearningFlow }

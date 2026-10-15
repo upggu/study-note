@@ -79,17 +79,31 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
 
 ## 다이어그램과 이미지 확대
 
-- **다이어그램은 전부 D2다** (규칙은 [d2-authoring.md](d2-authoring.md)).
-  자체 integration `src/integrations/d2.mjs`가 빌드 시 SVG 파일을 만들고 `<img>`로 넣으므로 문법 오류를
-  빌드가 잡는다. 기본 `<img>` 출력을 유지해야 다크 모드와 자동 확대가 함께 안정적으로 동작한다.
-  D2 `link:`·`tooltip:`을 쓰는 그림은 펜스 단위 `inline=true` + `<Zoom>`으로 쓴다(2026-10-13).
-  `style.animated`와 보드 애니메이션(`animateInterval`)은 `<img>`에서도 돈다.
-  이를 위해 `MarkdownContent.astro`가 그림 클릭을 확대 버튼으로 넘기고 `svg[data-d2-inline] a`의 click
-  전파를 끊으며(D2의 중첩 svg 때문에 플러그인의 클릭 처리가 닿지 않는다), `custom.css`가 인라인
-  svg를 본문 폭에 맞추며, `site-paths`가 `d2` 펜스 안 `link: /…`에 base를 붙인다.
-  inline 출력의 크기·제목·`data-d2-inline` 표시는 integration이 SVG 문자열에 직접 넣고, rehype 플러그인
-  `src/integrations/d2-inline.mjs`는 D2가 심는 `<style>`이 Astro MDX에서 접히지 않게만 지킨다
-  (MDX가 `<style>` 본문을 `set:html`로 접고 정적 최적화가 그 속성을 글자 그대로 직렬화하는 문제).
+- **관계·흐름 다이어그램은 D2다** (규칙은 [d2-authoring.md](d2-authoring.md)).
+  자체 integration `src/integrations/d2.mjs`가 빌드 때 SVG를 만들고 **모든 D2를 `<d2-figure>`로 감싼다.**
+  정적 참조는 지연 로드 `<img>`, 링크·설명·선/노드 애니메이션은 렌더 결과로 감지해 자동 인라인으로 출력한다.
+  `src/components/docs/D2Figure.astro`는 `MarkdownContent`에서 한 번 로드하는 공용 런타임이며 MDX에서 직접 쓰지 않는다.
+  `D2Figure`는 확대 버튼과 dialog, 호버·키보드·터치의 설명 표시, 선택적인 선 재생·정지를 맡는다.
+  확대 dialog는 원본 크기 기준 1–400% 슬라이더·± 버튼·100%·전체 보기를 제공한다. 배율 변경은
+  보고 있던 중심을 유지하고, 그림이 넘치면 스크롤·방향키로 이동한다. 미니맵은 넘칠 때만 나타나며
+  현재 영역 표시·클릭·드래그·방향키 이동과 숨기기를 지원한다. 인라인 그림의 미니맵은 정지된 SVG를
+  Blob 이미지 문서로 격리해 ID 충돌과 중복 링크·초점을 피하고, 닫을 때 URL과 관찰자를 정리한다.
+  확대 dialog가 열려 있는 동안 `html`·`body`의 스크롤을 잠근다. 휠은 그림·설명 영역 안에서만
+  스크롤하며 도구 모음·미니맵·배경 위에서는 문서를 움직이지 않는다. 닫히면 잠금도 자동 해제한다.
+  확대 안에서도 재생·정지한다. `syncKey`가 없고 패널마다 D2 하나인 Starlight Tabs는 단계 선택과
+  패널의 문단 설명도 표시한다. 단계 이동은 같은 dialog에 해당 원본 stage를 옮기고, 배율·중심·재생
+  상태를 이어 간다. 닫으면 정지·원위치 복귀 후 원본 탭을 클릭해 선택과 키보드 초점을 동기화한다.
+  Starlight 업그레이드 시 `starlight-tabs`의 직계 tabpanel·`aria-labelledby` 연결·탭 클릭 동작을 확인한다.
+  기본은 정지하고 `prefers-reduced-motion`을 존중한다. SVG를 복제하지 않고 dialog로 옮겨 clipPath ID 충돌을 피한다.
+  기존 `<Zoom>` 인라인 D2의 중첩 svg 클릭 보정은 `MarkdownContent.astro`에서 제거했다(2026-10-15).
+  D2 `<img>`에는 `data-zoom-off`를 붙여 starlight-image-zoom에서 제외한다. 일반 이미지 확대는 그대로다.
+- `src/integrations/d2-inline.mjs`는 MDX가 `<style>`을 접지 않게 보호하고, 인라인 다크 CSS를 페이지
+  `data-theme`에 연결한다. D2 0.9의 링크 아이콘은 원래 `<a>` 밖에 있으므로 객체 ID로 해당 링크를
+  찾아 감싼다. 설명은 data 속성과 키보드 초점으로도 접근할 수 있게 만든다.
+  `custom.css`는 인라인 svg를 본문 폭에 맞추고 `site-paths`는 펜스의 `link: /…`에 base를 붙인다.
+- 단계 탐색은 D2 `steps`/`scenarios` 원본의 보드를 `target`으로 따로 그려 Starlight `Tabs`로 선택한다.
+  `src/d2/request-response.d2`와 Starlight D2 페이지가 예제다. 상태는 탭 밖 표에도 남긴다.
+  공식 `animateInterval` 자동 교차를 단계 선택·상태 설명의 자동 대체로 취급하지 않는다.
 - integration은 렌더된 SVG를 후처리한다(`softenEdgeLabels`): 엣지 라벨의 mask를 떼고 라벨 상자에
   반투명 배경을 넣어 선이 라벨 뒤로 보이게 한다. d2는 `src/d2/`를 cwd로 실행하며, 로고는
   `src/d2/icons/`에 두고 펜스에서 `icon: icons/<이름>.svg`로 쓴다(규칙은 d2-authoring.md).
@@ -111,7 +125,7 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
   `d2 --version == v0.9.0`까지 확인한 디렉터리만 원자적으로 캐시에 반영한다. 캐시 hit에서도
   실행 권한과 버전을 다시 확인한다. 기본 레이아웃은 `elk`, 손그림(sketch) 모드가 기본이다(2026-10-13).
 - 생성된 `public/d2/`는 빌드 산출물이므로 `.gitignore`에서 제외한다.
-- `starlight-image-zoom`은 일반 Markdown/MDX 이미지와 D2 `<img>`를 자동으로 감싼다.
+- `starlight-image-zoom`은 일반 Markdown/MDX 이미지를 자동으로 감싼다. D2는 자체 UI를 자동 사용한다.
   `<SourceFigure>`는 원문 출처 링크와 이미지 확대 동작이 충돌하지 않도록 `<Zoom>`을 직접 쓴다.
 - 이 저장소는 Pagefind 덱 라벨용 `MarkdownContent` override가 이미 있으므로 플러그인이 자체
   override를 설치하지 않는다. 기존 `MarkdownContent.astro`가 `<ImageZoom />` 런타임을 직접

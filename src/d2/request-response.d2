@@ -1,0 +1,20 @@
+# starlight/d2.mdx의 수동 단계 예제. 두 보드의 노드·연결·라벨 배치는 동일하게 유지한다.
+direction: right
+browser: 브라우저 {
+  style: { fill: "#dbeafe"; stroke: "#2563eb"; font-color: "#1e3a8a" }
+}
+server: 서버 {
+  style: { fill: "#f1f5f9"; stroke: "#94a3b8"; font-color: "#334155" }
+}
+browser -> server: GET /guide {
+  style: { stroke: "#2563eb"; stroke-width: 3; animated: true }
+}
+server -> browser: HTML {
+  style: { opacity: 0.2; stroke: "#16a34a"; stroke-width: 3 }
+}
+steps: {
+  response: {
+    (browser -> server)[0].style: { opacity: 0.2; animated: false }
+    (server -> browser)[0].style: { opacity: 1; animated: true }
+  }
+}

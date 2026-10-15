@@ -1,6 +1,7 @@
 ---
 import Default from '@astrojs/starlight/components/MarkdownContent.astro';
 import ImageZoom from 'starlight-image-zoom/components/ImageZoom.astro';
+import D2Figure from '../docs/D2Figure.astro';
 import { deckDefinitions } from '../../data/decks.mjs';
 
 // 헤더 검색(Pagefind) 결과에 "덱: <이름>"을 표시하기 위한 커스텀 meta.
@@ -10,10 +11,8 @@ import { deckDefinitions } from '../../data/decks.mjs';
 // 랜딩처럼 topic 밖 페이지는 isCurrent가 없어 meta 없이 렌더된다.
 // 결과 카드에서의 표시 위치·모양은 src/styles/custom.css 참고.
 // 이 override가 있으면 starlight-image-zoom이 자체 MarkdownContent override를 설치하지 않으므로
-// ImageZoom 런타임도 여기서 함께 렌더한다.
+// 일반 이미지의 ImageZoom과 모든 D2 펜스의 D2Figure 런타임을 여기서 함께 렌더한다.
 // 소개 연월은 frontmatter의 introduced에서 읽고 검토 기록보다 먼저 표시한다.
-// inline D2(svg[data-d2-inline]) 안의 링크 클릭이 확대 dialog를 같이 열지 않게 하는 스크립트도 여기 둔다 —
-// 본문 안 D2가 모두 이 컴포넌트를 거치고, ImageZoom 런타임과 같은 자리에서 관리하는 편이 추적하기 쉽다.
 const topic = Astro.locals.starlightSidebarTopics?.topics.find((t) => t.isCurrent);
 const { entry } = Astro.locals.starlightRoute;
 const data = entry.data as typeof entry.data & {
@@ -45,6 +44,7 @@ const reviewedAt = data.reviewedAt?.toLocaleDateString('ko-KR', {
 ---
 
 <ImageZoom />
+<D2Figure />
 {topic && <span data-pagefind-meta={`덱:${topic.label}`} hidden></span>}
 {
 	introduced && (
@@ -65,23 +65,7 @@ const reviewedAt = data.reviewedAt?.toLocaleDateString('ko-KR', {
 }
 <Default><slot /></Default>
 
-<script>
-	// inline D2(```d2 inline=true, <Zoom>으로 감싼 svg[data-d2-inline])의 클릭 동작.
-	// - D2 SVG는 루트 svg 안에 svg가 한 겹 더 있어서, starlight-image-zoom의 document click 처리가
-	//   `closest('svg')`로 찾은 안쪽 svg를 등록된 그림으로 인식하지 못한다. 그림을 누르면 플러그인의
-	//   확대 버튼을 대신 눌러 준다. 전파를 끊어야 플러그인이 같은 클릭을 "열린 확대 닫기"로 처리하지 않는다.
-	// - <a>(D2 `link:`)는 링크에서 전파를 끊어 이동만 하게 한다. 기본 동작은 막지 않는다.
-	// - 확대 dialog 안의 복제본에는 리스너가 복제되지 않아 클릭이 "닫기 + 이동"으로 동작하는데, 그게 의도다.
-	for (const svg of document.querySelectorAll('starlight-image-zoom-zoomable > svg[data-d2-inline]')) {
-		for (const link of svg.querySelectorAll('a')) {
-			link.addEventListener('click', (event) => event.stopPropagation());
-		}
-		svg.addEventListener('click', (event) => {
-			event.stopPropagation();
-			svg.parentElement?.querySelector<HTMLButtonElement>(':scope > button')?.click();
-		});
-	}
-</script>
+
 
 <style>
 	.content-introduced {

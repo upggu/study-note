@@ -2,7 +2,7 @@
 
 [Astro Starlight](https://starlight.astro.build) 기반의 한국어 스터디 노트 템플릿.
 AI와 함께 내용을 쓰고 **축적·검색·참조**하는 문서 사이트를 만든다.
-덱별 사이드바, 이름·태그로 찾는 사이트 홈, Pagefind 검색, D2 다이어그램·이미지 확대·단계별 흐름(`LearningFlow`)을 포함한다.
+덱별 사이드바, 이름·태그로 찾는 사이트 홈, Pagefind 검색, D2 다이어그램·이미지 확대·단계별 흐름 탐색을 포함한다.
 
 ## 빠른 시작
 
@@ -76,8 +76,7 @@ AGENTS.md                     # 에이전트 작업 진입점 — Codex·Claude 
 - **다이어그램은 자체 D2 integration**(`src/integrations/d2.mjs`) — ```` ```d2 ```` 펜스를 빌드 때
   고정 버전의 native D2로 SVG로 만들어 문법 오류를 빌드가 잡는다
 - **이미지 확대는 [starlight-image-zoom](https://github.com/HiDeoo/starlight-image-zoom)** —
-  본문 이미지와 D2 다이어그램을 클릭하면 전체 화면 dialog로 연다
-- **단계별 흐름은 `LearningFlow`** — 누가 무엇을 보관하는지 단계마다 비교하는 설명에 쓴다
+  일반 본문 이미지를 클릭하면 확대 dialog로 연다. D2는 자체 `D2Figure`의 확대 버튼을 쓴다
 - **테마는 [starlight-theme-dracula](https://wasi-master.github.io/dracula-for-starlight/)(다크 Dracula · 라이트 Alucard), 본문 폰트는
   Pretendard**(셀프호스팅, dynamic subset)
 - **루트·하위 경로 배포 모두 지원** — 본문에는 base 없는 사이트 경로를 쓰고 빌드가 게시 경로를 붙인다
@@ -137,7 +136,6 @@ npm run preview
 | [docs/exec-plans/README.md](docs/exec-plans/README.md) | 명시적으로 요청한 계획의 번호·`active`/`completed` 이동·실행 기록 규칙 |
 | [docs/content-authoring.md](docs/content-authoring.md) | 제목 계층, 프론트매터, 컴포넌트 작성 규칙 |
 | [docs/d2-authoring.md](docs/d2-authoring.md) | D2를 추가·수정할 때만 읽는 강조·툴팁과 링크·단계 보드·배치·문법·의미 팔레트 |
-| [docs/learning-flow-authoring.md](docs/learning-flow-authoring.md) | `LearningFlow`를 추가·수정할 때만 읽는 적용 경계·흐름 데이터·검증 |
 | [docs/verification.md](docs/verification.md) | 자동 검사와 변경별 브라우저 검증 |
 | [docs/starlight-changes.md](docs/starlight-changes.md) | 기본 Starlight에서 바꾼 것 전체 목록 — 업그레이드 전에 볼 것 |
 | [docs/deploy.md](docs/deploy.md) | 배포 주소·게시 경로·정적 호스팅·D2·Git 이력 준비 |

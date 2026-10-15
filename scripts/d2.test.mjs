@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { d2Arguments, imgHtml, inlineSvgHtml, matchPageBackground, parseD2Attributes, softenEdgeLabels, svgSize } from '../src/integrations/d2.mjs';
+import { d2Arguments, figureHtml, imgHtml, inlineSvgHtml, matchPageBackground, parseD2Attributes, softenEdgeLabels, svgSize } from '../src/integrations/d2.mjs';
 
 test('fence attributes: defaults, overrides, quoting, truthy flags, target root', () => {
 	assert.deepEqual(parseD2Attributes(undefined), {
@@ -36,8 +36,32 @@ test('img output carries alt, size and the base-prefixed path', () => {
 	assert.deepEqual(svgSize(sample), { width: 580, height: 418 });
 	assert.equal(
 		imgHtml({ src: '/notes/d2/docs/a/b-0.svg', title: 'A "quoted" <title>', ...svgSize(sample) }),
-		'<img alt="A &quot;quoted&quot; &lt;title&gt;" decoding="async" loading="lazy" src="/notes/d2/docs/a/b-0.svg" width="580" height="418" />',
+		'<img data-zoom-off alt="A &quot;quoted&quot; &lt;title&gt;" decoding="async" loading="lazy" src="/notes/d2/docs/a/b-0.svg" width="580" height="418" />',
 	);
+});
+
+test('all D2 figures get the dedicated wrapper; static images stay lazy and opt out of image zoom', () => {
+	const html = figureHtml(sample, { options: parseD2Attributes('title="정적 그림"'), src: '/team/notes/d2/docs/a/b-0.svg' });
+	assert.ok(html.startsWith('<d2-figure role="figure" aria-label="정적 그림"><img data-zoom-off'));
+	assert.ok(html.includes('loading="lazy"'));
+	assert.ok(html.includes('src="/team/notes/d2/docs/a/b-0.svg"'));
+	assert.ok(html.endsWith('</d2-figure>'));
+	assert.ok(!html.includes('data-d2-inline'));
+});
+
+test('rendered links, tooltips and motion automatically use inline SVG, including imported D2 content', () => {
+	const render = (contents, attributes = '') => figureHtml(sample.replace('<rect/>', contents), {
+		options: parseD2Attributes(attributes), src: '/d2/example.svg',
+	});
+	for (const contents of ['<a href="/guide/"><rect/></a>', '<g><title>설명</title></g>', '<path class="connection animated-connection"/>']) {
+		const html = render(contents);
+		assert.ok(html.includes('data-d2-inline'), contents);
+		assert.ok(!html.includes('<img'), contents);
+	}
+	assert.ok(render('<path class="connection animated-connection"/>').includes(' data-motion>'));
+	assert.ok(!render('<a href="/guide/"><rect/></a>').includes(' data-motion>'));
+	assert.ok(render('<g><title>부록</title></g>', 'appendix=true').includes('<img data-zoom-off'));
+	assert.ok(render('<rect/>', 'inline=true').includes('data-d2-inline'));
 });
 
 test('inline output drops the XML prolog, sizes and marks the root, and adds the title', () => {

@@ -11,7 +11,9 @@ export function rehypeD2Inline() {
 	return (tree) => {
 		visit(tree, 'element', (node) => {
 			if (node.tagName !== 'svg' || !('dataD2Inline' in node.properties)) return;
+			node.properties.preserveAspectRatio = 'xMidYMid meet';
 			keepStylesheets(node);
+			enhanceInteractions(node);
 		});
 	};
 }
@@ -23,6 +25,11 @@ function keepStylesheets(root) {
 		for (const child of node.children ?? []) {
 			if (child.type !== 'element') continue;
 			if (child.tagName === 'style') {
+				// 외부 SVG의 media query는 <img>의 color-scheme을 따르지만 inline에서는 OS를 따른다.
+				// CSS nesting으로 페이지의 명시적 테마에 묶는다(확대 dialog에서도 같은 SVG를 쓴다).
+				for (const text of child.children) {
+					if (text.type === 'text') text.value = text.value.replace(/@media\s+screen\s+and\s*\(prefers-color-scheme:\s*dark\)/g, ':root[data-theme="dark"]');
+				}
 				if (child.children.every((grandchild) => grandchild.type === 'text')) {
 					child.children.unshift({ type: 'comment', value: '' });
 				}
@@ -31,4 +38,57 @@ function keepStylesheets(root) {
 			}
 		}
 	}
+}
+
+// D2 0.9의 노드 class는 base64, appendix clip ID의 마지막 부분은 base32다.
+// 링크 아이콘 자체에는 <a>가 없어서 동일 객체 ID의 링크로 감싼다. 좌표·선언 순서로 추측하지 않는다.
+function base32(bytes) {
+	const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+	let bits = 0, value = 0, result = '';
+	for (const byte of bytes) {
+		value = (value << 8) | byte;
+		bits += 8;
+		while (bits >= 5) { result += alphabet[(value >>> (bits -= 5)) & 31]; }
+	}
+	if (bits) result += alphabet[(value << (5 - bits)) & 31];
+	return result;
+}
+
+function enhanceInteractions(root) {
+	const links = new Map();
+	visit(root, 'element', (node) => {
+		if (node.tagName !== 'a') return;
+		const shape = node.children.find((child) => child.tagName === 'g' && child.properties?.className?.length);
+		if (!shape) return;
+		const id = base32(Buffer.from(shape.properties.className[0], 'base64'));
+		const labels = [];
+		visit(shape, 'text', (text) => labels.push(text.value));
+		const label = labels.join(' ').trim();
+		links.set(id, { properties: node.properties, label });
+		node.properties.ariaLabel = label;
+	});
+	visit(root, 'element', (node, index, parent) => {
+		if (node.tagName !== 'g') return;
+		const title = node.children.find((child) => child.tagName === 'title');
+		if (title) {
+			const text = title.children.filter((child) => child.type === 'text').map((child) => child.value).join('');
+			node.properties.dataD2Description = text;
+			if (parent?.tagName !== 'a') {
+				node.properties.tabIndex = 0;
+				node.properties.role = 'button';
+				node.properties.ariaLabel = `설명 보기: ${text}`;
+			} else parent.properties.dataD2Description = text;
+		}
+		if (!node.properties.className?.includes('appendix-icon') || title || parent?.tagName === 'a') return;
+		let id;
+		visit(node, 'element', (child) => {
+			if (child.tagName === 'clipPath') id = String(child.properties.id).match(/-d2-\d+-([A-Z2-7]+)$/)?.[1];
+		});
+		const link = links.get(id);
+		if (!link || !parent || index === undefined) return;
+		parent.children[index] = {
+			type: 'element', tagName: 'a',
+			properties: { ...link.properties, ariaLabel: `${link.label} 페이지로 이동` }, children: [node],
+		};
+	});
 }

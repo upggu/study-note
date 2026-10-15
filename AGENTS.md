@@ -10,7 +10,6 @@ Astro Starlight 기반 개인 스터디 노트 사이트. 슬라이드가 아니
 - 콘텐츠를 쓰거나 고칠 때: [docs/content-authoring.md](docs/content-authoring.md)
 - 사이트 구조·화면 영역·수정 범위를 지칭할 때: [화면 명칭과 수정 요청](src/content/docs/starlight/site-vocabulary.mdx)
 - D2를 추가하거나 고칠 때: [docs/d2-authoring.md](docs/d2-authoring.md)
-- `LearningFlow`를 추가하거나 고칠 때: [docs/learning-flow-authoring.md](docs/learning-flow-authoring.md)
 - 검증 방법: [docs/verification.md](docs/verification.md)
 - 배포를 준비하거나 배포 설정을 고칠 때: [docs/deploy.md](docs/deploy.md)
 - Starlight 설정·override를 고칠 때: [docs/starlight-changes.md](docs/starlight-changes.md)와 대상 컴포넌트 머리 주석
@@ -87,8 +86,8 @@ Astro Starlight 기반 개인 스터디 노트 사이트. 슬라이드가 아니
 - 글만으로 관계나 흐름을 이해하기 어렵다면 간단한 D2 다이어그램, 표, 공식 가이드의 이미지·구조도를
   적극적으로 쓴다. 시각 자료는 본문을 더 쉽게 이해하게 해 주는 경우에 넣는다.
 - 상세한 설명 순서, 외부 이미지 출처·저장 방식은 [콘텐츠 작성 규칙](docs/content-authoring.md),
-  D2 작성법은 [D2 작성 규칙](docs/d2-authoring.md), 단계별 흐름 예제는
-  [LearningFlow 작성 규칙](docs/learning-flow-authoring.md)을 따른다.
+  D2 작성법은 [D2 작성 규칙](docs/d2-authoring.md)을 따른다.
+  단계별 설명은 D2 단계 탭·Steps·상태 표를 사용한다.
 
 덱 정보는 사용하는 곳과 가까운 세 원본으로 나뉜다.
 
@@ -118,5 +117,4 @@ Astro Starlight 기반 개인 스터디 노트 사이트. 슬라이드가 아니
 - 사이드바 UI는 `src/components/layout/`의 `Sidebar`·`SiteTitle`·`SidebarToggle` override 세트다.
   실제 접힘 레이아웃은 `src/styles/custom.css`의 전역 규칙이다.
 
-세부 작성 규칙과 MDX 함정은 `docs/content-authoring.md`, D2 전용 규칙은 `docs/d2-authoring.md`,
-`LearningFlow` 전용 규칙은 `docs/learning-flow-authoring.md`에서 관리한다.
+세부 작성 규칙과 MDX 함정은 `docs/content-authoring.md`, D2 전용 규칙은 `docs/d2-authoring.md`에서 관리한다.

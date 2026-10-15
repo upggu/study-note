@@ -85,15 +85,26 @@ function escapeText(value) {
 	return String(value).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
 }
 
-/** <img> 출력. 크기를 속성으로 줘서 지연 로딩 전에도 자리를 잡는다. */
+/** D2 이미지 출력. 일반 이미지 확대 플러그인에서 명시적으로 제외한다. */
 export function imgHtml({ src, title, width, height }) {
-	return `<img alt="${escapeAttribute(title)}" decoding="async" loading="lazy" src="${escapeAttribute(src)}" width="${width}" height="${height}" />`;
+	return `<img data-zoom-off alt="${escapeAttribute(title)}" decoding="async" loading="lazy" src="${escapeAttribute(src)}" width="${width}" height="${height}" />`;
+}
+
+/** 정적·인라인 D2를 같은 전용 UI로 감싼다. 작성자는 별도 MDX 컴포넌트를 import하지 않는다. */
+export function figureHtml(svg, { options, src }) {
+	// 소스 정규식 대신 렌더 결과를 본다. import한 원본 안의 링크·툴팁·움직임도 잡혀야 한다.
+	// 보드 자동 교차는 선/노드 재생 UI와 계약이 달라 여기서는 자동 인라인으로 바꾸지 않는다.
+	const motion = !options.animateInterval && /<(?:path|g)\b[^>]*(?:class="[^"]*\banimated-|style="[^"]*\banimation\s*:)/.test(svg);
+	const interactive = !options.appendix && /<(?:a\s|title[\s>])/.test(svg);
+	const inline = options.inline || motion || interactive;
+	const content = inline ? inlineSvgHtml(svg, { title: options.title }) : imgHtml({ src, title: options.title, ...svgSize(svg) });
+	return `<d2-figure role="figure" aria-label="${escapeAttribute(options.title)}"${motion ? ' data-motion' : ''}>${content}</d2-figure>`;
 }
 
 /**
  * inline 출력. D2 SVG 문자열을 본문에 바로 넣을 수 있게 다듬는다.
  * - XML 선언을 떼고, 루트 <svg>에 viewBox 크기를 width/height로 줘서 <img>처럼 자연 크기로 그려지게 한다.
- * - 루트에 data-d2-inline을 달아 custom.css와 MarkdownContent.astro의 선택자가 이 그림만 잡게 한다.
+ * - 루트에 data-d2-inline을 달아 D2Figure와 rehype 플러그인이 이 그림만 다루게 한다.
  * - 펜스 title을 접근 가능한 이름(<title>)으로 넣는다.
  * D2가 심는 <style>은 Astro MDX가 접어 버리므로 src/integrations/d2-inline.mjs가 hast 단계에서 보호한다.
  */
@@ -221,13 +232,10 @@ export function remarkD2({ binary, base, publicDir, root, outputDir = 'd2', defa
 				} catch (error) {
 					throw new Error(`[D2 변환 실패] ${location}\n${error.message}`, { cause: error });
 				}
-				const html = options.inline
-					? inlineSvgHtml(svg, { title: options.title })
-					: imgHtml({
-							src: path.posix.join(base, outputDir, relativeOutput.split(path.sep).join('/')),
-							title: options.title,
-							...svgSize(svg),
-						});
+				const html = figureHtml(svg, {
+					options,
+					src: path.posix.join(base, outputDir, relativeOutput.split(path.sep).join('/')),
+				});
 				parent.children.splice(index, 1, { type: 'html', value: html });
 			}),
 		);

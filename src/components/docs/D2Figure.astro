@@ -1,0 +1,431 @@
+---
+/*
+ * 모든 D2 펜스의 공용 런타임. MarkdownContent에서 한 번 렌더하며 MDX에서 직접 쓰지 않는다.
+ * d2 integration이 <d2-figure>와 img/SVG를 생성한다. JS 없이도 원본과 본문을 읽을 수 있다.
+ * 확대는 원본을 옮긴 스크롤 영역과 배율 조작을 쓴다. 미니맵 사본은 별도 이미지 문서로 격리한다.
+ * 일반 이미지는 starlight-image-zoom이 맡고 D2 img는 data-zoom-off로 제외한다.
+ * 선/노드 움직임은 자동 감지해 재생·정지한다. 보드 자동 교차는 이 모션 UI의 대상이 아니다.
+ * 패널마다 D2 하나를 둔 Starlight Tabs는 확대 안에서도 선택한다. 원본 탭은 닫을 때 동기화한다.
+ * 작성 계약: docs/d2-authoring.md.
+ */
+---
+
+<script>
+  type FigureContent = {
+    media: SVGSVGElement | HTMLImageElement;
+    stage: HTMLElement;
+    home: HTMLElement;
+    description: HTMLElement;
+    motion: HTMLButtonElement;
+    stop: () => void;
+    toggle: () => void;
+  };
+  type FigureStep = { figure: D2Figure; tab: HTMLAnchorElement; label: string; summary: string };
+
+  class D2Figure extends HTMLElement {
+    content?: FigureContent;
+    connectedCallback() {
+      if (this.dataset.ready) return;
+      const ownMedia = this.querySelector<SVGSVGElement | HTMLImageElement>(':scope > svg[data-d2-inline], :scope > img');
+      if (!ownMedia) return;
+      let media: SVGSVGElement | HTMLImageElement = ownMedia;
+      this.dataset.ready = 'true';
+      const svg = ownMedia instanceof SVGSVGElement ? ownMedia : undefined;
+      const hasDescription = !!svg?.querySelector('[data-d2-description]');
+      const hasMotion = this.hasAttribute('data-motion');
+      // 고정된 UI 문자열만 파싱한다. 작성자의 제목·설명은 textContent/ariaLabel로 넣는다.
+      const template = document.createElement('template');
+      template.innerHTML = `
+        <div class="controls" data-pagefind-ignore>
+          <span class="hint"></span>
+          <button type="button" data-motion-toggle aria-pressed="false" hidden>흐름 재생</button>
+          <button type="button" data-expand>그림 확대</button>
+        </div>
+        <div data-home><div class="stage" data-stage></div></div>
+        <p class="description" data-description aria-live="polite" data-pagefind-ignore hidden></p>
+        <dialog data-pagefind-ignore>
+          <div class="controls">
+            <div class="zoom-controls" role="group" aria-label="그림 배율">
+              <button type="button" data-zoom-out aria-label="그림 축소">−</button>
+              <label class="zoom-label">배율 <input data-zoom type="range" min="1" max="400" step="1" value="100" /></label>
+              <output data-zoom-value>100%</output>
+              <button type="button" data-zoom-in aria-label="그림 확대 배율 높이기">+</button>
+            </div>
+            <button type="button" data-fit>전체 보기</button>
+            <button type="button" data-actual>100%</button>
+            <button type="button" data-map-toggle aria-pressed="true" disabled>미니맵</button>
+            <button type="button" data-close autofocus>확대 닫기</button>
+          </div>
+          <div class="controls playback-controls" data-playback hidden>
+            <div data-step-buttons role="group" aria-label="단계 선택" hidden></div>
+            <button type="button" data-expanded-motion aria-pressed="false" hidden>흐름 재생</button>
+          </div>
+          <div class="viewer">
+            <div data-viewport tabindex="0" role="region" aria-label="확대된 그림. 방향키나 스크롤로 이동">
+              <div data-expanded></div>
+            </div>
+            <div class="minimap" data-minimap hidden>
+              <span class="map-label">전체 위치</span>
+              <div data-map-surface role="group" tabindex="0" aria-label="미니맵. 클릭·드래그 또는 방향키로 이동">
+                <img data-map-image data-zoom-off alt="" draggable="false" />
+                <span data-map-window></span>
+              </div>
+            </div>
+          </div>
+          <div class="reading-context">
+            <p class="description" data-step-summary aria-live="polite" hidden></p>
+            <p class="description" data-expanded-description aria-live="polite" data-pagefind-ignore hidden></p>
+          </div>
+        </dialog>`;
+      this.append(template.content.cloneNode(true));
+      let stage = this.querySelector<HTMLElement>('[data-stage]')!;
+      const ownStage = stage;
+      stage.append(media);
+      const home = this.querySelector<HTMLElement>('[data-home]')!;
+      const dialog = this.querySelector<HTMLDialogElement>('dialog')!;
+      const viewport = this.querySelector<HTMLElement>('[data-viewport]')!;
+      const slider = this.querySelector<HTMLInputElement>('[data-zoom]')!;
+      const zoomValue = this.querySelector<HTMLOutputElement>('[data-zoom-value]')!;
+      const zoomOut = this.querySelector<HTMLButtonElement>('[data-zoom-out]')!;
+      const zoomIn = this.querySelector<HTMLButtonElement>('[data-zoom-in]')!;
+      const mapToggle = this.querySelector<HTMLButtonElement>('[data-map-toggle]')!;
+      const minimap = this.querySelector<HTMLElement>('[data-minimap]')!;
+      const mapSurface = this.querySelector<HTMLElement>('[data-map-surface]')!;
+      const mapImage = this.querySelector<HTMLImageElement>('[data-map-image]')!;
+      const mapWindow = this.querySelector<HTMLElement>('[data-map-window]')!;
+      const playback = this.querySelector<HTMLElement>('[data-playback]')!;
+      const stepButtons = this.querySelector<HTMLElement>('[data-step-buttons]')!;
+      const stepSummary = this.querySelector<HTMLElement>('[data-step-summary]')!;
+      const expandedMotion = this.querySelector<HTMLButtonElement>('[data-expanded-motion]')!;
+      let activeFigure: D2Figure = this;
+      let steps: FigureStep[] = [];
+      // integration이 두 출력 방식 모두에 원본 viewBox 크기를 넣는다. 이미지 로딩 전에도 계산 가능하다.
+      let width = Number(media.getAttribute('width')) || 1;
+      let height = Number(media.getAttribute('height')) || 1;
+      let scale = 1;
+      let fitted = true;
+      let showMap = true;
+      let thumbnailUrl: string | undefined;
+      const releaseThumbnail = () => {
+        if (thumbnailUrl) URL.revokeObjectURL(thumbnailUrl);
+        thumbnailUrl = undefined;
+        mapImage.removeAttribute('src');
+      };
+      const prepareThumbnail = () => {
+        releaseThumbnail();
+        if (!(media instanceof SVGSVGElement)) {
+          mapImage.src = (media as HTMLImageElement).currentSrc || (media as HTMLImageElement).src;
+          return;
+        }
+        // DOM에 두 번째 SVG를 넣지 않는다. 별도 이미지 문서여서 clipPath ID·링크·초점이 원본과 충돌하지 않는다.
+        const copy = media.cloneNode(true) as SVGSVGElement;
+        // Starlight Tabs의 HTML 재직렬화가 xmlns를 :xmlns로 남길 수 있다. XML 문서에서는 유효하지 않다.
+        copy.removeAttribute(':xmlns');
+        copy.setAttribute('data-theme', document.documentElement.dataset.theme || 'light');
+        const pause = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+        pause.textContent = '* { animation: none !important; }';
+        copy.append(pause);
+        thumbnailUrl = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(copy)], { type: 'image/svg+xml' }));
+        mapImage.src = thumbnailUrl;
+      };
+      const updateMap = () => {
+        if (!dialog.open) return;
+        const overflow = viewport.scrollWidth > viewport.clientWidth + 1 || viewport.scrollHeight > viewport.clientHeight + 1;
+        mapToggle.disabled = !overflow;
+        minimap.hidden = !overflow || !showMap;
+        if (minimap.hidden) return;
+        if (!mapImage.hasAttribute('src')) prepareThumbnail();
+        const mapScale = Math.min(160 / width, 100 / height);
+        mapSurface.style.width = `${width * mapScale}px`;
+        mapSurface.style.height = `${height * mapScale}px`;
+        const view = viewport.getBoundingClientRect();
+        const drawing = stage.getBoundingClientRect();
+        const left = Math.max(0, view.left - drawing.left);
+        const top = Math.max(0, view.top - drawing.top);
+        const visibleWidth = Math.min(drawing.width, view.left + viewport.clientWidth - drawing.left) - left;
+        const visibleHeight = Math.min(drawing.height, view.top + viewport.clientHeight - drawing.top) - top;
+        const ratio = mapScale / scale;
+        Object.assign(mapWindow.style, {
+          left: `${left * ratio}px`, top: `${top * ratio}px`,
+          width: `${Math.max(0, visibleWidth) * ratio}px`, height: `${Math.max(0, visibleHeight) * ratio}px`,
+        });
+      };
+      const viewCenter = () => {
+        const view = viewport.getBoundingClientRect();
+        const drawing = stage.getBoundingClientRect();
+        return {
+          x: (view.left + viewport.clientWidth / 2 - drawing.left) / drawing.width,
+          y: (view.top + viewport.clientHeight / 2 - drawing.top) / drawing.height,
+        };
+      };
+      const setScale = (next: number, fit = false, center = viewCenter()) => {
+        fitted = fit;
+        scale = Math.max(.01, Math.min(4, next));
+        stage.style.width = `${width * scale}px`;
+        stage.style.height = `${height * scale}px`;
+        slider.value = String(Math.round(scale * 100));
+        slider.setAttribute('aria-valuetext', `${Math.round(scale * 100)}%`);
+        zoomValue.value = `${Math.round(scale * 100)}%`;
+        zoomOut.disabled = scale <= .01;
+        zoomIn.disabled = scale >= 4;
+        viewport.scrollLeft = stage.offsetLeft + (fit ? .5 : center.x) * width * scale - viewport.clientWidth / 2;
+        viewport.scrollTop = stage.offsetTop + (fit ? .5 : center.y) * height * scale - viewport.clientHeight / 2;
+        updateMap();
+      };
+      const fit = () => setScale(Math.min((viewport.clientWidth - 32) / width, (viewport.clientHeight - 32) / height, 1), true);
+      slider.addEventListener('input', () => setScale(Number(slider.value) / 100));
+      zoomOut.addEventListener('click', () => setScale(scale - .25));
+      zoomIn.addEventListener('click', () => setScale(scale + .25));
+      this.querySelector('[data-fit]')!.addEventListener('click', fit);
+      this.querySelector('[data-actual]')!.addEventListener('click', () => setScale(1));
+      viewport.addEventListener('scroll', updateMap, { passive: true });
+      mapToggle.addEventListener('click', () => {
+        showMap = !showMap;
+        mapToggle.setAttribute('aria-pressed', String(showMap));
+        updateMap();
+      });
+      const moveFromMap = (event: PointerEvent) => {
+        const bounds = mapSurface.getBoundingClientRect();
+        viewport.scrollLeft = stage.offsetLeft + (event.clientX - bounds.left) / bounds.width * width * scale - viewport.clientWidth / 2;
+        viewport.scrollTop = stage.offsetTop + (event.clientY - bounds.top) / bounds.height * height * scale - viewport.clientHeight / 2;
+        updateMap();
+      };
+      mapSurface.addEventListener('pointerdown', (event) => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        mapSurface.focus({ preventScroll: true });
+        mapSurface.setPointerCapture(event.pointerId);
+        moveFromMap(event);
+      });
+      mapSurface.addEventListener('pointermove', (event) => {
+        if (mapSurface.hasPointerCapture(event.pointerId)) moveFromMap(event);
+      });
+      mapSurface.addEventListener('pointerup', (event) => {
+        if (mapSurface.hasPointerCapture(event.pointerId)) mapSurface.releasePointerCapture(event.pointerId);
+      });
+      mapSurface.addEventListener('keydown', (event) => {
+        const directions: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+        const direction = directions[event.key];
+        if (!direction) return;
+        event.preventDefault();
+        viewport.scrollBy(direction[0] * viewport.clientWidth / 4, direction[1] * viewport.clientHeight / 4);
+      });
+      const resize = new ResizeObserver(() => { if (dialog.open) fitted ? fit() : updateMap(); });
+      const theme = new MutationObserver(() => { if (dialog.open && mapImage.hasAttribute('src')) prepareThumbnail(); });
+      dialog.ariaLabel = this.getAttribute('aria-label') ?? 'D2 다이어그램';
+      const expand = this.querySelector<HTMLButtonElement>('[data-expand]')!;
+      const motion = this.querySelector<HTMLButtonElement>('[data-motion-toggle]')!;
+      motion.hidden = !hasMotion;
+      this.querySelector('.hint')!.textContent = hasMotion
+        ? '흐름을 재생해 화살표 방향을 따라가세요'
+        : hasDescription ? '노드의 설명은 마우스·키보드·터치로 확인' : '그림을 확대해 자세히 읽을 수 있습니다';
+      const description = this.querySelector<HTMLElement>('[data-description]')!;
+      const expandedDescription = this.querySelector<HTMLElement>('[data-expanded-description]')!;
+      const notifyViewer = () => ownStage.dispatchEvent(new Event('d2-content-change', { bubbles: true }));
+      description.hidden = !hasDescription;
+      const explain = (event: Event) => {
+        const target = event.target instanceof Element ? event.target.closest('[data-d2-description]') : null;
+        const text = target?.getAttribute('data-d2-description');
+        if (text) {
+          description.textContent = text;
+          notifyViewer();
+        }
+      };
+      description.textContent = expandedDescription.textContent = '설명이 있는 노드나 ⓘ를 선택하세요. 링크 노드는 해당 페이지로 이동합니다.';
+      expandedDescription.hidden = description.hidden;
+      for (const type of ['pointerover', 'focusin', 'click']) ownStage.addEventListener(type, explain);
+      viewport.addEventListener('click', (event) => {
+        if (dialog.open && event.target instanceof Element && event.target.closest('a')) dialog.close();
+      });
+      ownStage.addEventListener('keydown', (event) => {
+        if (event.target instanceof Element && event.target.closest('[role="button"][data-d2-description]') && ['Enter', ' '].includes(event.key)) {
+          event.preventDefault();
+          explain(event);
+        }
+      });
+      // 기본은 정지. 사용자가 재생해도 OS의 동작 줄이기 설정은 존중한다.
+      const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+      const stop = () => {
+        if (svg) svg.dataset.d2Playing = 'false';
+        if (motion) { motion.textContent = '흐름 재생'; motion.setAttribute('aria-pressed', 'false'); }
+        notifyViewer();
+      };
+      stop();
+      const toggle = () => {
+        if (!svg || !hasMotion || reducedMotion.matches) return;
+        if (svg.dataset.d2Playing === 'true') stop();
+        else {
+          svg.dataset.d2Playing = 'true';
+          motion.textContent = '흐름 정지';
+          motion.setAttribute('aria-pressed', 'true');
+          notifyViewer();
+        }
+      };
+      motion.addEventListener('click', toggle);
+      const updatePreference = () => {
+        if (!motion) return;
+        if (reducedMotion.matches) stop();
+        motion.disabled = reducedMotion.matches;
+        motion.title = reducedMotion.matches ? '기기의 동작 줄이기 설정에 따라 정지합니다.' : '';
+        notifyViewer();
+      };
+      updatePreference();
+      reducedMotion.addEventListener('change', updatePreference);
+      this.content = { media: ownMedia, stage: ownStage, home, description, motion, stop, toggle };
+      const syncViewer = () => {
+        const content = activeFigure.content!;
+        expandedMotion.hidden = content.motion.hidden;
+        expandedMotion.disabled = content.motion.disabled;
+        expandedMotion.title = content.motion.title;
+        expandedMotion.textContent = content.motion.textContent;
+        expandedMotion.setAttribute('aria-pressed', content.motion.getAttribute('aria-pressed') || 'false');
+        playback.hidden = steps.length < 2 && expandedMotion.hidden;
+        expandedDescription.hidden = content.description.hidden;
+        expandedDescription.textContent = content.description.textContent;
+        dialog.ariaLabel = activeFigure.getAttribute('aria-label') || 'D2 다이어그램';
+      };
+      viewport.addEventListener('d2-content-change', syncViewer);
+      expandedMotion.addEventListener('click', () => activeFigure.content!.toggle());
+      const restoreStage = () => {
+        const content = activeFigure.content!;
+        content.stop();
+        content.stage.style.removeProperty('width');
+        content.stage.style.removeProperty('height');
+        content.home.append(content.stage);
+      };
+      const selectFigure = (figure: D2Figure) => {
+        const center = dialog.open ? viewCenter() : { x: .5, y: .5 };
+        const wasPlaying = dialog.open && activeFigure.content!.motion.getAttribute('aria-pressed') === 'true';
+        if (dialog.open) restoreStage();
+        activeFigure = figure;
+        const content = figure.content!;
+        content.stop();
+        media = content.media;
+        stage = content.stage;
+        width = Number(media.getAttribute('width')) || 1;
+        height = Number(media.getAttribute('height')) || 1;
+        releaseThumbnail();
+        dialog.querySelector('[data-expanded]')!.append(stage);
+        const step = steps.find(step => step.figure === figure);
+        stepSummary.hidden = !step?.summary;
+        stepSummary.textContent = step?.summary || '';
+        Array.from(stepButtons.children).forEach((button, index) => button.setAttribute('aria-pressed', String(steps[index].figure === figure)));
+        syncViewer();
+        if (dialog.open) {
+          if (fitted) fit();
+          else setScale(scale, false, center);
+          if (wasPlaying) content.toggle();
+        }
+      };
+      const findSteps = (): FigureStep[] => {
+        const tabs = this.closest('starlight-tabs');
+        if (!tabs) return [];
+        const panels = Array.from(tabs.querySelectorAll<HTMLElement>(':scope > [role="tabpanel"]'));
+        const candidates = panels.map(panel => {
+          // 중첩 탭·여러 그림·syncKey 탭을 단계로 오인하지 않는다.
+          const figures = Array.from(panel.querySelectorAll<D2Figure>('d2-figure'));
+          const tab = document.getElementById(panel.getAttribute('aria-labelledby') || '') as HTMLAnchorElement | null;
+          if (figures.length !== 1 || !figures[0].content || figures[0].closest('[role="tabpanel"]') !== panel || !tab) return null;
+          return {
+            figure: figures[0], tab, label: tab.textContent?.trim() || '단계',
+            summary: Array.from(panel.querySelectorAll(':scope > p')).map(p => p.textContent?.trim()).filter(Boolean).join(' '),
+          };
+        });
+        if (tabs.hasAttribute('data-sync-key') || candidates.length < 2 || candidates.some(step => !step)) return [];
+        return candidates as FigureStep[];
+      };
+      this.cleanup = () => {
+        if (dialog.open) restoreStage();
+        reducedMotion.removeEventListener('change', updatePreference);
+        resize.disconnect();
+        theme.disconnect();
+        releaseThumbnail();
+      };
+      expand.addEventListener('click', () => {
+        steps = findSteps();
+        steps.forEach(step => step.figure.content!.stop());
+        stepButtons.replaceChildren();
+        stepButtons.hidden = steps.length < 2;
+        steps.forEach(step => {
+          const button = document.createElement('button');
+          button.type = 'button';
+          button.textContent = step.label;
+          button.addEventListener('click', () => { if (activeFigure !== step.figure) selectFigure(step.figure); });
+          stepButtons.append(button);
+        });
+        selectFigure(this);
+        dialog.showModal();
+        fit();
+        resize.observe(viewport);
+        theme.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+      });
+      this.querySelector('[data-close]')!.addEventListener('click', () => dialog.close());
+      dialog.addEventListener('click', (event) => { if (event.target === dialog) dialog.close(); });
+      dialog.addEventListener('close', () => {
+        resize.disconnect();
+        theme.disconnect();
+        releaseThumbnail();
+        restoreStage();
+        // dialog가 속한 원본 패널을 숨기지 않도록 본문 탭은 닫은 뒤 Starlight의 클릭 경로로 갱신한다.
+        const selected = steps.find(step => step.figure === activeFigure);
+        if (selected && selected.tab.getAttribute('aria-selected') !== 'true') selected.tab.click();
+        activeFigure.querySelector<HTMLButtonElement>('[data-expand]')!.focus({ preventScroll: true });
+      });
+    }
+    cleanup?: () => void;
+    disconnectedCallback() { this.cleanup?.(); }
+  }
+  if (!customElements.get('d2-figure')) customElements.define('d2-figure', D2Figure);
+</script>
+
+<style is:global>
+  /* showModal()은 배경 클릭만 막는다. 도구 모음·미니맵·backdrop 위의 휠도 문서를 움직이지 못하게 한다.
+     열린 dialog를 기준으로 잠가 Escape·링크 이동·요소 제거 때 별도 JS 상태 없이 해제한다. */
+  html:has(d2-figure dialog[open]), html:has(d2-figure dialog[open]) body { overflow: hidden; overscroll-behavior: none; }
+  d2-figure { display: block; margin-block: 1.5rem; border: 1px solid var(--sl-color-gray-5); border-radius: .75rem; overflow: hidden; }
+  d2-figure .controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .65rem .85rem; background: var(--sl-color-gray-6); }
+  d2-figure [data-home], d2-figure [data-expanded], d2-figure .controls > * { margin: 0; }
+  d2-figure [hidden] { display: none; }
+  d2-figure .hint { flex: 1 1 12rem; font-size: var(--sl-text-xs); color: var(--sl-color-gray-2); }
+  d2-figure button { font: inherit; font-size: var(--sl-text-sm); border: 1px solid var(--sl-color-gray-4); border-radius: .4rem; padding: .3rem .65rem; color: var(--sl-color-text); background: var(--sl-color-bg); cursor: pointer; }
+  d2-figure button:disabled { opacity: .6; cursor: default; }
+  d2-figure :is(button, a, input, [tabindex], [role='button']):focus-visible { outline: 2px solid var(--sl-color-text-accent); outline-offset: -2px; }
+  d2-figure .stage { padding: .5rem; text-align: center; }
+  d2-figure img, d2-figure svg[data-d2-inline] { display: block; margin: auto; max-width: 100%; height: auto; }
+  d2-figure a, d2-figure [role='button'] { cursor: pointer; }
+  d2-figure .description { margin: 0; padding: .75rem 1rem; min-height: 4rem; border-top: 1px solid var(--sl-color-gray-5); font-size: var(--sl-text-sm); }
+  d2-figure dialog { width: min(96vw, 100rem); height: 92dvh; max-width: 96vw; max-height: 94dvh; margin: auto; padding: 0; overflow: hidden; color: var(--sl-color-text); background: var(--sl-color-bg); border: 1px solid var(--sl-color-gray-4); border-radius: .75rem; }
+  d2-figure dialog[open] { display: flex; flex-direction: column; }
+  d2-figure dialog::backdrop { background: rgb(0 0 0 / .65); }
+  d2-figure dialog .controls { flex: none; }
+  d2-figure .playback-controls { border-top: 1px solid var(--sl-color-gray-5); }
+  d2-figure [data-step-buttons] { display: flex; flex: 1; flex-wrap: wrap; gap: .4rem; }
+  d2-figure [data-step-buttons] button { margin: 0; }
+  d2-figure [data-step-buttons] button[aria-pressed='true'] { border-color: var(--sl-color-text-accent); background: var(--sl-color-accent-low); }
+  d2-figure .zoom-controls { display: flex; flex: 1 1 auto; align-items: center; gap: .5rem; }
+  d2-figure .zoom-controls > *, d2-figure .zoom-label > *, d2-figure .viewer, d2-figure [data-viewport], d2-figure .minimap > * { margin: 0; }
+  d2-figure .zoom-label { display: flex; align-items: center; gap: .4rem; font-size: var(--sl-text-sm); }
+  d2-figure [data-zoom] { width: clamp(5rem, 15vw, 12rem); min-width: 0; accent-color: var(--sl-color-text-accent); cursor: pointer; }
+  d2-figure [data-zoom-value] { min-width: 4ch; font-size: var(--sl-text-sm); font-variant-numeric: tabular-nums; text-align: right; }
+  d2-figure [data-map-toggle][aria-pressed='true']:enabled { border-color: var(--sl-color-text-accent); }
+  d2-figure .viewer { position: relative; flex: 1; min-height: 0; }
+  d2-figure [data-viewport] { position: absolute; inset: 0; overflow: auto; overscroll-behavior: contain; scroll-behavior: auto; }
+  d2-figure [data-expanded] { position: relative; display: flex; width: max-content; min-width: 100%; min-height: 100%; }
+  d2-figure dialog .stage { flex: none; margin: auto; padding: 0; }
+  d2-figure dialog .stage > :is(img, svg[data-d2-inline]) { width: 100%; height: 100%; max-width: none; max-height: none; }
+  d2-figure .reading-context { flex: none; margin: 0; max-height: 25dvh; overflow: auto; overscroll-behavior: contain; }
+  d2-figure dialog .description { min-height: 0; }
+  d2-figure .minimap { position: absolute; right: 1.25rem; bottom: 1.25rem; margin: 0; padding: .4rem; border: 1px solid var(--sl-color-gray-4); border-radius: .5rem; background: var(--sl-color-bg); box-shadow: 0 2px 12px rgb(0 0 0 / .2); }
+  d2-figure .map-label { display: block; margin-bottom: .25rem; font-size: var(--sl-text-xs); color: var(--sl-color-gray-2); }
+  d2-figure [data-map-surface] { position: relative; cursor: crosshair; touch-action: none; }
+  d2-figure [data-map-image] { width: 100%; height: 100%; pointer-events: none; user-select: none; }
+  d2-figure [data-map-window] { position: absolute; margin: 0; border: 2px solid var(--sl-color-text-accent); background: color-mix(in srgb, var(--sl-color-text-accent) 15%, transparent); pointer-events: none; box-sizing: border-box; }
+  /* 원본을 옮겨도 정지 상태를 유지한다. 비JS에서도 정지한다. */
+  d2-figure svg[data-d2-inline]:not([data-d2-playing='true']) * { animation-play-state: paused !important; }
+  @media (prefers-reduced-motion: reduce) {
+    d2-figure svg[data-d2-inline] * { animation-play-state: paused !important; }
+  }
+  @media (max-width: 30rem) {
+    d2-figure .hint { flex-basis: 100%; }
+  }
+</style>

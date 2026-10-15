@@ -33,7 +33,7 @@ Starlight·Docusaurus·VitePress·MkDocs와 Material for MkDocs·Nextra·Fumadoc
 분량을 줄이더라도 기존 후보의 이름·쓰임·공식 링크는 유지한다. Next.js 앱 통합용 후보를 구별한다.
 Notion·Obsidian의 웹 게시, GitBook의 AI·Git 연동을 배제하지 않는다. 성능·AI 정확성의 우열은 실측 없이 주장하지 않는다.
 저장소 동작은 _deck.mjs·loader·package scripts·컴포넌트·astro.config.mjs와 대조한다.
-Starlight 기본 기능과 플러그인, Astro 통합, 자체 덱 loader·LearningFlow·검사를 구분한다.
+Starlight 기본 기능과 플러그인, Astro 통합, 자체 덱 loader·D2 확대 UI·검사를 구분한다.
 사용 중인 확장은 실제 활성 설정을 기준으로 역할과 공식 링크를 함께 소개한다.
 
 배포 운영 값은 docs/deploy.md가 정본이다. GitHub Pages·Vercel은 실제 배포 성공을 확인한 사례로
@@ -46,7 +46,7 @@ Starlight 기본 기능과 플러그인, Astro 통합, 자체 덱 loader·Learni
 - 페이지마다 하나의 학습 질문에 답한다. 코드를 먼저 보여 주기보다 실제 표현과 읽을 지점을 먼저 둔다.
 - 요청 예시는 사람이 원하는 결과를 말하는 형태로 쓴다. 구현 파일·props를 직접 채우게 하지 않는다.
 - 이미지·D2·기존 컴포넌트를 적극 활용하되 질문에 답하는 설명과 조건·근거를 본문에 남긴다.
-- 가상의 요청과 이미 구현된 예제를 구별한다. LearningFlow 요청·응답 예제의 id와 단계 링크는 유지한다.
+- 가상의 요청과 이미 구현된 예제를 구별한다. 요청·응답의 단계별 비교는 D2 페이지에서 안내한다.
 - 새 학습 본문에 Thesis·TermIntro를 둔다. 결론은 1~5개 불릿으로 쓰고 말미에 반복 요약하지 않는다.
 - 제목·파일명·URL에 순서 번호를 넣지 않는다. 읽는 순서는 _deck.mjs의 sidebar가 맡는다.
 - 기존 화면 명칭 이미지에는 촬영일을 표시한다. 개편 전 제목·그룹명이 보이면 그 차이를 설명한다.
