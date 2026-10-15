@@ -1,8 +1,6 @@
 ---
 title: "Cloudflare Pages로 배포하기"
 description: "Git 연동과 빌드 설정으로 Cloudflare Pages에 배포한다. 얕은 이력과 D2는 저장소의 스크립트가 처리한다"
-reviewedAt: 2026-09-30
-status: stable
 ---
 
 import { LinkCard, Steps } from '@astrojs/starlight/components';
@@ -14,6 +12,7 @@ import TermIntro from '../../../components/docs/TermIntro.astro';
 - Cloudflare Pages에 Git 저장소를 연결하면 main 푸시 후 자동 배포하도록 구성할 수 있다.
 - 빌드 명령은 `npm run build`, 출력 폴더는 `dist`다. Node 버전과 D2 준비는 저장소 파일에서 관리한다.
 - 배포 성공 뒤에는 대표 주소·본문·검색·수정일을 확인한다. 실제 운영 값은 배포 운영 문서가 정본이다.
+- 본인만 보려면 운영·미리보기·연결한 도메인 모두에 Cloudflare Access를 적용한다. PIN 인증은 유효한 로그인 세션 동안 반복하지 않는다.
 
 </Thesis>
 
@@ -25,7 +24,6 @@ import TermIntro from '../../../components/docs/TermIntro.astro';
 <TermIntro terms={[
   ['Cloudflare Pages', '', 'Git 저장소를 연결하면 빌드해서 정적 파일을 제공하는 Cloudflare의 호스팅. 브랜치마다 미리보기 주소가 생긴다.'],
   ['build cache', '', '이전 빌드의 node_modules/.astro 등을 다음 빌드에 재사용하는 대시보드 기능. 성능 최적화이지 성공 조건이 아니다.'],
-  ['Workers Static Assets', '', 'Cloudflare Workers에 정적 파일을 얹어 제공하는 방식. Cloudflare가 새 프로젝트에 권하는 후속 경로다.'],
 ]} />
 
 ## 대시보드에서 연결한다
@@ -88,35 +86,84 @@ curl -s 'https://YOUR-DOMAIN.example/sitemap-0.xml' | grep -o '<loc>[^<]*</loc>'
 `YOUR-DOMAIN.example`은 실제 대표 도메인으로 바꾼다. 공개 주소에서 수정한 본문과 D2 이미지가
 보이고, 전역 검색이 동작하며, 덱별 마지막 수정일이 Git 이력과 맞는지도 확인한다.
 
-## 대시보드 없이 올리고 싶을 때
+## 접근을 제한하고 싶을 때
 
-로컬 산출물을 직접 올릴 수 있다. wrangler 설치는 [공식 문서](https://developers.cloudflare.com/workers/wrangler/install-and-update/)를 따른다.
+Pages로 배포한 사이트는 기본적으로 주소를 아는 사람이 열 수 있다. **Cloudflare Access**는
+사이트를 보여 주기 전에 방문자를 인증하고, 허용한 사람에게만 접근을 열어 주는 기능이다.
+본인 이메일 하나만 허용하고 **One-time PIN**을 로그인 방법으로 사용하면, 이메일로 받은
+일회용 코드를 입력해 접속할 수 있다. Starlight에 로그인 기능을 직접 만들 필요는 없다.
+[이메일 PIN 설정 방법](https://developers.cloudflare.com/cloudflare-one/integrations/identity-providers/one-time-pin/)을 따른다.
 
-```bash
-npm run build
-npx wrangler pages deploy dist --project-name=YOUR-PROJECT
-```
+### 운영 주소와 미리보기 주소를 모두 보호한다
 
-`YOUR-PROJECT`는 실제 Pages 프로젝트 이름이다. 로컬 checkout에 전체 Git 이력이 있어야
-수정일도 정확하다. 이 명령 자체가 Git 푸시 자동 배포를 설정하지는 않는다.
+Pages의 **Enable access policy**는 처음 켰을 때 미리보기만 보호한다.
+`프로젝트.pages.dev` 운영 주소와 별도로 연결한 도메인까지 자동으로 잠기는 것은 아니다.
+[미리보기 접근 제한 문서](https://developers.cloudflare.com/pages/configuration/preview-deployments/#customize-preview-deployments-access)에서 이 범위를 확인할 수 있다.
 
-## Workers로 가야 할 때
+| 보호할 주소 예시 | 용도 |
+|---|---|
+| `study-notes.pages.dev` | 운영 사이트 |
+| `*.study-notes.pages.dev` | 배포별 미리보기·브랜치 주소 |
+| `notes.example.com` | 별도로 연결한 도메인이 있을 때 |
 
-[Astro 공식 Cloudflare 안내](https://docs.astro.build/en/guides/deploy/cloudflare/)는 Cloudflare가
-새 프로젝트에 Pages 대신 Workers를 권한다고 적고 있다. 정적 사이트는 어댑터 없이
-`wrangler.jsonc`에 산출물 위치만 알려 주면 된다.
+다음은 [운영 주소까지 Access를 적용하는 공식 절차](https://developers.cloudflare.com/pages/platform/known-issues/#enable-access-on-your-pagesdev-domain)다.
+예시 프로젝트 이름과 도메인은 실제 값으로 바꾼다.
 
-```jsonc title="wrangler.jsonc — 정적 사이트 최소 예"
-{
-  "name": "study-notes",
-  "compatibility_date": "2026-09-17",
-  "assets": { "directory": "./dist" }
-}
-```
+<Steps>
 
-이 저장소를 Workers로 옮길 때는 Git 이력 준비도 점검한다. 현재 스크립트는 `CF_PAGES=1`을
-조건으로 삼으므로 Workers의 빌드 환경에서 그대로 실행된다고 가정하면 안 된다.
-이 템플릿의 빌드 보조 스크립트는 Pages를 기준으로 하며 Workers 배포는 검증하지 않았다.
+1. Cloudflare의 **Workers & Pages → 해당 프로젝트 → Settings → General → Enable access policy**를 켠다.
+
+2. 생성된 정책의 **Manage**로 Access 애플리케이션을 열고 **Configure**를 선택한다.
+
+3. **Public hostname → Subdomain**에서 맨 앞의 와일드카드 `*`를 제거하고 저장한다.
+   보호 대상이 `*.study-notes.pages.dev`에서 `study-notes.pages.dev`로 바뀐다.
+   저장 오류가 나면 애플리케이션 이름도 바꿔 본다.
+
+4. Pages 설정으로 돌아와 **Enable access policy를 다시 켠다.**
+   운영 주소와 미리보기 주소를 보호하는 Access 애플리케이션이 각각 있는지 확인한다.
+
+5. 별도 도메인이 있다면 **Zero Trust → Access controls → Applications → Create new application → Self-hosted and private**에서
+   **Add public hostname**으로 그 도메인도 추가한다. 사이트 전체를 보호하도록 경로는 비워 둔다.
+
+6. 각 애플리케이션에 로그인 방법 **One-time PIN**을 사용할 수 있게 하고,
+   허용 정책을 **Action: Allow → Include: Emails → 본인 이메일 주소 하나**로 설정한다.
+   다른 사람을 허용하는 기존 규칙이나 인증을 건너뛰는 `Bypass`가 남아 있지 않은지도 확인한다.
+
+</Steps>
+
+이메일 조건은 `@example.com` 같은 도메인 전체가 아니라 본인의 정확한 주소로 제한한다.
+`One-time PIN` 자체를 Include 조건으로 추가하면 다른 이메일 사용자까지 허용할 수 있다.
+[Access 정책 예제](https://developers.cloudflare.com/cloudflare-one/access-controls/policies/common-policies/)의 이메일 제한 원칙을 따른다.
+
+### PIN은 들어갈 때마다 입력하지 않는다
+
+한 번 인증하면 브라우저에 **로그인 세션**이 유지된다. 같은 브라우저에서 세션이 유효한 동안은
+탭을 닫았다가 다시 열어도 PIN을 다시 입력하지 않는다. 기본 전역·애플리케이션 세션은 24시간이며,
+7일이나 최대 1개월로 조정할 수 있다.
+[세션 관리 문서](https://developers.cloudflare.com/cloudflare-one/access-controls/access-settings/session-management/)가 각 설정의 기준이다.
+
+예를 들어 같은 브라우저에서 한 달간 인증을 유지하려면 다음 세 곳을 맞춘다.
+
+| 설정 위치 — Zero Trust → Access controls 기준 | 예시 값 |
+|---|---|
+| Access settings의 전역 세션 | 1개월 |
+| Applications → 해당 애플리케이션 → Configure의 Session Duration | 1개월 |
+| 연결한 정책의 Session Duration | Same as application |
+
+애플리케이션 세션이 끝나도 전역 세션이 유효하고 허용 조건을 만족하면 자동 갱신될 수 있다.
+둘 다 만료되거나 쿠키를 지웠을 때, 새 기기·브라우저에서 접속할 때는 다시 인증한다.
+세션을 길게 잡으면 인증 횟수는 줄지만, 로그인된 브라우저로 접근할 수 있는 기간도 길어진다.
+
+### 적용 결과를 확인한다
+
+시크릿 창에서 운영 주소·미리보기 주소·별도 도메인을 각각 연다. 인증 전에는 본문이 보이지 않고,
+본인 이메일로 PIN 인증을 마치면 본문·검색·이미지가 동작해야 한다. 허용하지 않은 이메일은
+사이트를 열 수 없어야 한다. 로그인 화면에 코드를 보냈다는 안내가 나와도, 허용되지 않은
+이메일에는 실제 PIN이 발송되지 않는다.
+
+Access는 배포 사이트의 접근을 제한한다. **GitHub 저장소가 공개라면 문서 원본은 계속 공개**되므로,
+내용 자체를 본인만 보려면 저장소의 공개 범위도 확인한다. 다시 공개하려면 각 주소에 적용한
+Access 보호를 해제하고, 로그아웃 상태에서 접근되는지 확인한다.
 
 ## 확인할 제한
 
