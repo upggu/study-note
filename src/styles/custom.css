@@ -67,6 +67,59 @@ main:has([data-deck-catalog]) > .content-panel + .content-panel {
   }
 }
 
+/* 헤더 자동 숨김 — 상태 전환은 src/components/layout/HeaderAutoHide.astro, 여기는 레이아웃만.
+   덱 페이지에서 맨 위를 벗어나고 마우스가 헤더 자리에 없으면 <html data-header-hidden>이 붙고,
+   헤더와 헤더 높이에 기대어 붙어 있는 요소들을 함께 그만큼 밀어 올린다. 본문의 padding-top(--sl-nav-height)은 그대로 둬
+   문서 높이·스크롤 위치가 바뀌지 않는다.
+   Starlight 0.42 내부 구조에 기댄다: header.header(PageFrame, fixed), .sidebar-pane(fixed, 헤더 아래),
+   .right-sidebar(≥72rem 페이지 목차, padding-top으로 헤더를 비킴), mobile-starlight-toc nav(좁은 화면
+   목차 바, 헤더 바로 아래 fixed), .sl-menu-button(좁은 화면 햄버거, 헤더 밖 fixed).
+   검색·D2 확대 dialog는 top layer라 헤더의 transform에 영향을 받지 않는다. */
+header.header,
+.sl-menu-button,
+mobile-starlight-toc nav {
+  transition: transform 0.2s ease;
+}
+
+.sidebar-pane {
+  transition: inset-block-start 0.2s ease;
+}
+
+.right-sidebar {
+  transition: padding-top 0.2s ease;
+}
+
+html[data-header-hidden] header.header {
+  transform: translateY(-100%);
+}
+
+html[data-header-hidden] .sl-menu-button,
+html[data-header-hidden] mobile-starlight-toc nav {
+  transform: translateY(calc(-1 * var(--sl-nav-height)));
+}
+
+@media (min-width: 50rem) {
+  html[data-header-hidden] .sidebar-pane {
+    inset-block-start: 0;
+  }
+}
+
+@media (min-width: 72rem) {
+  html[data-header-hidden] .right-sidebar {
+    padding-top: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  header.header,
+  .sl-menu-button,
+  mobile-starlight-toc nav,
+  .sidebar-pane,
+  .right-sidebar {
+    transition: none;
+  }
+}
+
 /* inline D2 — 펜스에 inline=true를 준 그림(docs/d2-authoring.md "링크·툴팁이 필요한 그림").
    외부 <img>는 Starlight이 본문 폭에 맞춰 주지만 인라인 <svg>는 width/height 속성 크기 그대로
    그려지므로 같은 규칙을 직접 준다(크기 속성과 data-d2-inline은 src/integrations/d2.mjs가 단다). */
