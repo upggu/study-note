@@ -6,7 +6,7 @@ Astro Starlight 기반 개인 스터디 노트 사이트. 슬라이드가 아니
 ## 작업에 맞춰 읽을 것
 
 - 구조·명령을 처음 확인하거나 새 덱을 만들 때: [README.md](README.md)
-- 작업 계획을 만들거나 실행·재개·마감할 때: [docs/exec-plans/README.md](docs/exec-plans/README.md)
+- 설계·계획 문서를 만들거나 실행·재개할 때: [docs/superpowers/README.md](docs/superpowers/README.md)
 - 콘텐츠를 쓰거나 고칠 때: [docs/content-authoring.md](docs/content-authoring.md)
 - 사이트 구조·화면 영역·수정 범위를 지칭할 때: [화면 명칭과 수정 요청](src/content/docs/starlight/site-vocabulary.mdx)
 - D2를 추가하거나 고칠 때: [docs/d2-authoring.md](docs/d2-authoring.md)
@@ -41,18 +41,23 @@ Astro Starlight 기반 개인 스터디 노트 사이트. 슬라이드가 아니
 
 ## 작업 계획
 
-새 계획 문서 파일은 사용자가 명시적으로 요청한 경우에만 만든다. 작업이 복잡하거나 여러 단계·세션에
-걸친다는 이유, 리뷰·검증 결과를 기록해야 한다는 이유만으로 생성하지 않는다. 일반 작업은 편집·검증을
-수행하고 결정·결과·남은 제한을 대화로 보고한다. 기존 계획의 실행·재개를 요청받았다면 해당 문서를 갱신한다.
-이 규칙의 정본은 이 절이며, 다른 지침 문서는 이 절을 링크한다.
+설계·계획 문서는 superpowers가 정한 자리를 쓴다. 설계는 `docs/superpowers/specs/YYYY-MM-DD-<주제>-design.md`,
+계획은 `docs/superpowers/plans/YYYY-MM-DD-<이름>.md`, 실행 중 진행 기록은 `.superpowers/sdd/`(Git 제외)다.
+형식은 superpowers skill이 정하고 이 저장소는 덧붙이지 않는다. 폴더별 역할과 완료 시 문서 반영 기준은
+[docs/superpowers/README.md](docs/superpowers/README.md)에 있다.
 
-계획은 `docs/exec-plans/active/0001-<slug>.md`처럼 네 자리 번호로 만들고 끝나면 `completed/`로
-옮긴다. 진행 상태는 폴더가, 지금 위치와 차단 사유는 각 계획이 말한다. README에 목록을 중복
-기록하지 않는다. 번호 발급·실행 기록·완료 절차는
-[계획 관리 규칙](docs/exec-plans/README.md)을 따른다. 아래 번호 없는 명명은 학습 페이지에 적용한다.
+설계·계획 파일의 생성 여부는 사용자 요청과 superpowers의 작업 규모 판단·절차를 따른다. 분명한 작은
+변경은 편집·검증하고 결정·결과·남은 제한을 대화로 보고한다. 프로젝트 규모의 작업은 설계를 파일로
+남기고 합의된 설계에 따라 계획을 만든다. 파일 생성 자체에 별도 요청이나 승인을 요구하지 않는다.
+사용자가 문서 생략이나 계획까지만 작성을 지정했다면 그 범위를 따른다. 기존 계획의 실행·재개를
+요청받았다면 ledger·git log·현재 diff를 대조해 끝난 작업을 반복하지 않는다. 이 규칙의 정본은 이 절이며,
+다른 지침 문서는 이 절을 링크한다.
+
 실행 범위는 사용자 요청이 기준이다. 계획만 요청하면 구현하지 않고, 특정 작업만 요청하면 해당 작업의
 수정·검증·기록까지 마친다. 전체 완료를 맡겼다면 허용된 다음 작업을 이어 간다.
 계획 파일이 있다는 이유로 이미 허용된 구현의 승인을 다시 요구하지 않는다.
+앞으로도 필요한 결정은 최종 리뷰와 ledger 삭제 전에 덱 `_baseline.md`·본문·`docs/`의 지침으로 옮긴다.
+아래 번호 없는 명명은 학습 페이지에 적용한다.
 
 ## 덱
 

@@ -133,7 +133,7 @@ npm run preview
 | 문서 | 내용 |
 |---|---|
 | [AGENTS.md](AGENTS.md) | 작업 진입점, 반드시 읽을 문서와 깨뜨리면 안 되는 설정 — Claude Code v2.1.277 이상은 CLAUDE.md 없이 이 파일을 직접 읽는다 |
-| [docs/exec-plans/README.md](docs/exec-plans/README.md) | 명시적으로 요청한 계획의 번호·`active`/`completed` 이동·실행 기록 규칙 |
+| [docs/superpowers/README.md](docs/superpowers/README.md) | superpowers가 쓰는 설계·계획 폴더와 완료 시 문서 반영 기준 |
 | [docs/content-authoring.md](docs/content-authoring.md) | 제목 계층, 프론트매터, 컴포넌트 작성 규칙 |
 | [docs/d2-authoring.md](docs/d2-authoring.md) | D2를 추가·수정할 때만 읽는 강조·툴팁과 링크·단계 보드·배치·문법·의미 팔레트 |
 | [docs/verification.md](docs/verification.md) | 자동 검사와 변경별 브라우저 검증 |

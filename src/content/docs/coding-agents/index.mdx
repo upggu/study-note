@@ -1,50 +1,129 @@
 ---
 title: 개요
-description: Codex와 Claude Code가 같은 기준으로 일하도록 레포의 지침 파일과 스펙·설계·계획 문서를 두고 유지하는 방법
-reviewedAt: 2026-09-23
-status: stable
+description: superpowers로 작업별 spec·plan을 관리하고, 프로젝트의 현재 구조·규약은 별도 문서에서 유지하는 방법. AGENTS.md로 읽을 문서를 연결하고 두 도구 사이에서 작업을 이어받는다
 ---
 
-import { LinkButton } from '@astrojs/starlight/components';
+import { FileTree, LinkButton, Steps } from '@astrojs/starlight/components';
 import DeckMap from '../../../components/docs/DeckMap.astro';
 import Thesis from '../../../components/docs/Thesis.astro';
 
-<Thesis>지침은 `AGENTS.md` 하나에, 지식은 스펙·설계·계획 세 층에 두면 두 도구와 여러 세션이 같은 기준으로 일한다</Thesis>
+<Thesis>
 
-Codex로 정한 결정을 Claude Code가 모르고, 새 세션이 끝난 작업을 다시 하고, 검사 명령이
-두 파일에 다르게 적혀 있는 문제에서 출발한다. 원인은 같다. **규칙과 결정이 대화에만 남고
-레포에는 없기 때문이다.**
+- superpowers로 작업별 설계(spec)·계획(plan)을 만들고 구현·검증한다. 이 덱에서는 작은 수정은 별도 파일 없이 진행하도록 AGENTS.md에 정한다.
+- 프로젝트의 현재 구조·데이터·규약과 결정 이유는 별도 문서에서 유지한다. 작업을 시작할 때 읽고, 바뀐 내용은 같은 작업에서 갱신한다.
+- 완료된 spec·plan은 당시 작업 기록으로 남긴다. 다음 작업이 참고할 현재 기준은 프로젝트 설계·규약 문서에 둔다.
+- `AGENTS.md`는 명령·제약·작업 방식과, 어떤 작업에서 어느 문서를 읽을지 연결한다.
 
-이 덱은 Git과 Markdown을 아는 독자가 자신의 레포에 다음을 갖추는 방법을 다룬다.
+</Thesis>
 
-- 두 도구가 함께 읽는 지침 파일 `AGENTS.md` 하나
-- 요구를 담는 **스펙**, 규약과 결정을 담는 **설계**, 순서와 현재 상태를 담는 **계획** 문서
-- 요청 → 구현 → 검증 → 인계 → 재개로 이어지는 작업 흐름
+Codex로 정한 결정을 Claude Code가 모르거나, 새 세션이 끝난 작업을 다시 시작한다. 결정이 대화에만
+남으면 이어받기 어렵다. 파일로 남겨도 작업별 기록에만 흩어져 있으면 지금 적용할 구조와 규약을 찾기 어렵다.
 
-설명용 예시는 가상 업무 서비스의 **CSV 내보내기** 기능 하나다. 스펙·설계·계획 페이지가
-같은 예시를 이어 쓰므로 세 문서가 어떻게 연결되는지 따라갈 수 있다.
+이 덱은 **작업별 기록과 프로젝트의 현재 기준을 함께 관리하는 방법**을 다룬다. 작업의 설계·계획·실행은
+[superpowers](https://github.com/obra/superpowers)에 맡기고, 현재 구조·규약은 프로젝트 문서에 유지한다.
+`AGENTS.md`가 읽을 문서를 연결하며 두 도구는 그 파일들을 기준으로 이어서 일한다. 예시는 가상 업무 서비스의
+**CSV 내보내기** 하나다.
 
-<LinkButton href="/coding-agents/repository-layout/" icon="right-arrow">레포 구조부터 보기</LinkButton>
+**프로젝트 문서 참고 → 작업별 spec → plan → 구현·검증 → 프로젝트 문서 갱신**
+
+갱신한 프로젝트 문서가 다음 작업의 출발점이 된다. 새 폴더를 만드는 것은 필요에 따라 선택한다.
+이미 README나 `docs/`에 현재 구조·규약을 관리하고 있다면 그 문서를 계속 쓰고 AGENTS.md에서 연결한다.
+
+{/* 개편 전 절 북마크를 유지한다. */}
+<span id="지금-필요한-일에서-시작하기" />
+
+## 따라 하기
+
+<Steps>
+
+1. superpowers를 두 도구에 설치한다. Claude Code는 `/plugin install superpowers@claude-plugins-official`,
+   Codex는 `/plugins`에서 superpowers를 찾아 Install. 둘 다 사용자 전역 설치라 한 번 설치하면 그 컴퓨터의
+   모든 레포에 적용된다. 하네스마다 따로 설치한다. 레포에는 superpowers 파일이 들어가지 않는다.
+
+2. 레포 루트에 `AGENTS.md`를 만든다. 명령·제약·읽을 문서·작업 방식만 40줄 안팎으로 적는다.
+   [AGENTS.md](/coding-agents/agents-md/)의 템플릿을 레포의 실제 값으로 바꾼다. 기존 도구별 지침은 규칙을 옮긴 뒤 지운다.
+
+3. 새 세션을 열어 읽혔는지 확인한다. Claude Code는 시작 때 `no CLAUDE.md found; AGENTS.md loaded: <경로>`
+   줄을 보여 준다. 안 뜨면 작업 디렉터리와 상위 폴더의 `CLAUDE.md`부터 찾는다.
+
+4. 만들 것을 말한다. 관련 프로젝트 문서와 코드를 읽고, 작업 규모에 따라 superpowers가 설계(spec)를
+   `docs/superpowers/specs/`에, 계획(plan)을 `docs/superpowers/plans/`에 쓴다. 실행 중에는
+   작업별 구현·검증 뒤 커밋하고 `.superpowers/sdd/`에 진행 기록을 남긴다.
+   [설계·계획·진행 기록](/coding-agents/design-and-plans/)이 각 파일의 역할을 설명한다.
+
+5. 도구를 바꾸거나 다른 기기로 옮길 때는 [작업 흐름](/coding-agents/workflow/)의 재개 요청문을 쓴다.
+   구조·규약이 바뀌면 같은 작업에서 [프로젝트 설계·규약 문서](/coding-agents/design-docs/)를 갱신하고,
+   최종 리뷰와 ledger 삭제 전에 현재 코드와 일치하는지 확인한다.
+
+</Steps>
+
+## 시작 구조
+
+<FileTree>
+
+- **AGENTS.md** 명령·제약·읽을 문서·작업 방식
+- docs/
+  - superpowers/
+    - specs/ 작업별 설계(spec)
+      - 2026-10-24-csv-export-design.md
+    - plans/ 작업별 계획(plan)
+      - 2026-10-24-csv-export.md
+  - design-docs/ 현재 구조·규약. 기존 문서 위치를 써도 된다
+    - architecture.md
+    - csv-output.md
+- .superpowers/
+  - sdd/ 계획별 진행 기록. 기본은 Git 제외
+    - 2026-10-24-csv-export/
+      - progress.md
+- src/
+
+</FileTree>
+
+| 파일 | 답하는 질문 | 갱신·보존 기준 |
+|---|---|---|
+| `AGENTS.md` | 이 레포에서 어떻게 일하고 무엇을 읽는가 | 명령·제약·읽을 문서가 바뀔 때 갱신 |
+| `docs/superpowers/specs/` | 이번 작업에서 무엇을 왜 만들고 무엇이면 완료인가 | 작업 중 요구 변경을 반영. 완료 뒤 당시 기록으로 보존 |
+| `docs/superpowers/plans/` | 이번 spec을 어떤 순서로 구현·검증하는가 | 실행할 작업을 관리. 완료 뒤 당시 기록으로 보존 |
+| `.superpowers/sdd/*/progress.md` | 이번 실행은 어디까지 왔는가 | 실행 중 갱신. 최종 리뷰 후 삭제 |
+| `docs/design-docs/` 또는 기존 프로젝트 문서 | 현재 구조·데이터·규약은 무엇이며 왜 그렇게 정했는가 | 관련 구현을 바꾸는 작업에서 함께 갱신 |
+
+`README.md`는 사람이 보는 사용법으로 그대로 둔다. 공유 지침은 `AGENTS.md`에만 둔다. Claude Code도
+[직접 읽도록 버전과 설정을 맞춘다](/coding-agents/agents-md/#직접-읽도록-버전과-설정을-맞춘다).
+
+## AI에게 시킨다
+
+기존 레포를 이 구조로 바꾸는 일은 에이전트에게 맡긴다. 요청문에 덱 주소와 기존 파일 처리만 적는다.
+
+```text
+이 가이드를 따라 이 레포의 문서 구조를 바꿔 줘.
+<이 사이트 주소>/coding-agents/ 의 "따라 하기"와 AGENTS.md 페이지를 읽어 줘.
+AGENTS.md에는 package.json·CI에서 확인한 명령만 넣고, 기존 지침 파일의 규칙은 흡수한 뒤 지워 줘.
+작업별 spec·plan과 프로젝트의 현재 설계·규약 문서를 구분하고, 기존 프로젝트 문서의 읽기·갱신 조건을 연결해 줘.
+기존 계획·결정 문서는 이 가이드의 처리 표대로 옮기되, 확정된 요구·완료 작업·보류 사유를 보존해 줘.
+새 문서와 실제 변경 내용을 대조해 누락이 없는지 확인한 뒤 옛 파일의 보관·삭제를 결정해 줘.
+구현·검증·커밋·리뷰는 superpowers 절차로 진행해 줘.
+```
+
+| 기존 파일 | 처리 |
+|---|---|
+| `CLAUDE.md`, `.cursorrules` 같은 도구별 지침 | 규칙을 적용 범위에 맞는 AGENTS.md에 흡수하고 지운다. 틀린 명령은 레포에서 확인해 고친다. 두 도구가 AGENTS.md를 직접 읽도록 설정한다 |
+| 루트의 PLAN.md·TODO.md | 확정된 요구·결정·완료 작업·검증 결과·보류 사유를 실제 코드와 대조한다. 필요한 내용을 새 설계·계획과 실행 시 ledger에 옮기고, 미정인 요구만 논의한다. 완료된 기록도 누락이 없는지 확인한 뒤 보관하거나 삭제한다 |
+| 구조 문서·ADR·결정 기록 | 현재 구조·규약과 결정 이유를 확인한다. 기존 문서가 있으면 그 위치에서 갱신하고 AGENTS.md에 읽을 조건을 연결한다. 관리할 자리가 없으면 `docs/design-docs/`에 정리한다 |
+| README의 에이전트용 규칙 | AGENTS.md로 옮긴다. README의 사용법·현재 구조 설명은 유지하고 필요한 절을 AGENTS.md에서 연결한다 |
+
+에이전트가 끝내면 AGENTS.md의 명령이 실제로 도는지, 새 세션에서 `AGENTS.md loaded` 줄이 뜨는지 확인한다.
+기존 계획의 요구·완료 작업·보류 사유가 어디로 옮겨졌는지도 대조한다. 형식을 바꾸었다는 이유로 끝난 작업을 다시 시작하지 않는다.
+
+<LinkButton href="/coding-agents/agents-md/" icon="right-arrow">AGENTS.md부터 보기</LinkButton>
 
 ## 구성
 
 <DeckMap deck="coding-agents" />
 
-## 지금 필요한 일에서 시작하기
-
-| 지금 필요한 일 | 읽을 곳 |
-|---|---|
-| 레포에 어떤 파일을 둘지 정한다 | [레포 구조](/coding-agents/repository-layout/) |
-| AGENTS.md를 새로 쓰거나 고친다 | [AGENTS.md 작성법](/coding-agents/agents-md/) |
-| Claude Code가 AGENTS.md를 읽는지 확인한다 | [지침 로딩](/coding-agents/instruction-loading/) |
-| 큰 기능의 요구를 정리한다 | [스펙 문서](/coding-agents/product-specs/) |
-| 구현하며 정한 규약을 남긴다 | [설계 문서](/coding-agents/design-docs/) |
-| 여러 세션에 걸칠 작업을 시작한다 | [계획 문서](/coding-agents/exec-plans/) |
-| 구현·검증하고 다른 도구로 넘긴다 | [작업 흐름](/coding-agents/workflow/) |
-
 ## 이 덱이 다루지 않는 것
 
-두 도구의 설정 항목 전체, API 개발, 모델 성능 비교는 다루지 않는다. 이 사이트 자체의
-덱 작성 규칙도 다른 레포에 복사할 대상이 아니다. 공식 문서와 공개 레포를 2026-09-23에
-대조했다. Claude Code가 CLAUDE.md 없이 AGENTS.md를 읽는 것은 실제 세션에서 확인했고, 그 밖의 동작은
-실측한 결과가 아니다.
+superpowers의 skill 하나하나(TDD·디버깅·리뷰 절차)는 설명하지 않는다. 설치 뒤 자동으로 적용되고
+[README](https://github.com/obra/superpowers#the-basic-workflow)가 정본이다. 두 도구의 설정 항목 전체,
+API 개발, 모델 성능 비교도 다루지 않는다. 이 사이트 자체도 같은 배치를 쓴다.
+공식 문서·superpowers v7.0.1·공개 레포를 2026-10-24에 대조했고, Claude Code가 CLAUDE.md 없이 AGENTS.md를
+읽는 것은 실제 세션에서 확인했다. 그 밖의 동작은 실측한 결과가 아니다.

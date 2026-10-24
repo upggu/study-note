@@ -1,0 +1,91 @@
+---
+// 합친 문서의 옛 절을 현재 내용으로 연결한다. query를 유지하고, 이름이 같은 anchor는 그대로 넘긴다.
+// 비JS 환경에는 페이지 단위 meta refresh와 링크를 제공한다.
+import { withBase } from '../../utils/site-path.mjs';
+
+export function getStaticPaths() {
+	return Object.entries({
+		'repository-layout': {
+			target: '',
+			anchors: {
+				'대화에만-남은-결정은-다음-세션에-없다': '#시작-구조',
+				'추천-구조': '#시작-구조',
+				'파일마다-답하는-질문이-다르다': '#시작-구조',
+				'세-층은-한-방향으로-흐른다': 'workflow/#한-작업의-순서',
+				'작게-시작하고-필요할-때-층을-연다': '#따라-하기',
+				'이해-확인': '#따라-하기',
+			},
+		},
+		'instruction-loading': {
+			target: 'agents-md/',
+			anchors: {
+				'claudemd-없이-agentsmd만-둔다': 'agents-md/#두-도구가-읽는-조건',
+				'두-도구는-어디까지-자동으로-읽는가': 'agents-md/#두-도구가-읽는-조건',
+				'직접-읽기가-안-되는-세션에만-claudemd-어댑터를-둔다': 'agents-md/#직접-읽기가-안-되는-세션만-어댑터를-둔다',
+				'import는-복사가-아니다': 'agents-md/#직접-읽기가-안-되는-세션만-어댑터를-둔다',
+				'실제로-읽혔는지-확인한다': 'agents-md/#읽혔는지-확인한다',
+			},
+		},
+		'exec-plans': {
+			target: 'design-and-plans/',
+			anchors: {
+				'언제-만드는가': 'design-and-plans/#세-파일이-생기는-순서',
+				'계획에-적는-것': 'design-and-plans/#계획-어떤-순서로',
+				'작업은-결과를-검증할-수-있게-나눈다': 'design-and-plans/#계획-어떤-순서로',
+				'수명주기': 'workflow/#한-작업의-순서',
+				'번호와-파일명': 'design-and-plans/#세-파일이-생기는-순서',
+				'실행-범위에-따라-멈추는-곳이-다르다': 'workflow/#요청문은-결과와-멈출-지점만',
+				'발견한-사실에-맞춰-고친다': 'design-and-plans/#계획-어떤-순서로',
+				'완료하면-지식을-제자리로-옮긴다': 'design-and-plans/#ledger가-삭제되기-전에-결정을-옮긴다',
+				'plan-modeexecplan과의-관계': 'design-and-plans/#세-파일이-생기는-순서',
+			},
+		},
+		'product-specs': {
+			target: 'design-and-plans/',
+			anchors: {
+				'스펙이-없으면-완료-조건이-조용히-낮아진다': 'design-and-plans/#설계-무엇을-왜',
+				'스펙에-적는-것': 'design-and-plans/#설계-무엇을-왜',
+				'예시-업무-목록-csv-내보내기': 'design-and-plans/#설계-무엇을-왜',
+				'언제-만드는가': 'design-and-plans/#세-파일이-생기는-순서',
+				'어떻게-유지하는가': 'design-and-plans/#계획-어떤-순서로',
+			},
+		},
+		'specs-and-design': { target: 'design-docs/' },
+		'monorepo-instructions': {
+			target: 'other-approaches/',
+			anchors: {
+				'경계는-폴더-수가-아니라-규칙의-차이다': 'other-approaches/#monorepo-하위-agentsmd는-규칙이-갈라지는-곳에만',
+				'하위-파일은-차이만-적는다': 'other-approaches/#monorepo-하위-agentsmd는-규칙이-갈라지는-곳에만',
+				'구조가-자란-뒤의-점검': 'other-approaches/#monorepo-하위-agentsmd는-규칙이-갈라지는-곳에만',
+			},
+		},
+		'public-repositories': { target: 'other-approaches/' },
+	}).map(([page, route]) => ({ params: { page }, props: { ...route, anchors: 'anchors' in route ? route.anchors : {} } }));
+}
+
+const destination = withBase(`/coding-agents/${Astro.props.target}`, import.meta.env.BASE_URL);
+const anchorDestinations = Object.fromEntries(Object.entries(Astro.props.anchors).map(([anchor, target]) =>
+	[anchor, withBase(`/coding-agents/${target}`, import.meta.env.BASE_URL)]));
+const canonical = new URL(destination, Astro.site);
+---
+
+<!doctype html>
+<html lang="ko">
+	<head>
+		<meta charset="utf-8" />
+		<title>Claude Code · Codex 레포 운영으로 이동</title>
+		<meta name="robots" content="noindex" />
+		<link rel="canonical" href={canonical} />
+		<script is:inline define:vars={{ destination, anchorDestinations }}>
+			let anchor = window.location.hash.slice(1);
+			try { anchor = decodeURIComponent(anchor); } catch { /* 잘못 인코딩된 hash는 그대로 넘긴다. */ }
+			const mapped = Object.hasOwn(anchorDestinations, anchor) ? anchorDestinations[anchor] : undefined;
+			const target = new URL(mapped ?? destination, window.location.href);
+			target.search = window.location.search;
+			if (!mapped) target.hash = window.location.hash;
+			window.location.replace(target.href);
+		</script>
+		<noscript><meta http-equiv="refresh" content={`0;url=${destination}`} /></noscript>
+	</head>
+	<body><a href={destination}>Claude Code · Codex 레포 운영의 페이지로 이동</a></body>
+</html>
