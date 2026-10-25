@@ -31,7 +31,8 @@ export default {
     {
       "label": "작업 흐름",
       "pages": [
-        "workflow"
+        "workflow",
+        "paseo-agents"
       ]
     },
     {
@@ -69,6 +70,13 @@ export default {
       "title": "참고 · 설계 · 구현 · 갱신",
       "tone": "ok",
       "desc": "프로젝트 문서에서 시작해 spec·plan으로 구현하고 현재 기준을 갱신하는 흐름과 도구 간 인계"
+    },
+    {
+      "label": "위임",
+      "href": "/coding-agents/paseo-agents/",
+      "title": "Paseo에서 구현과 리뷰 나누기",
+      "tone": "zone",
+      "desc": "Astra로 설계·조율하고 Sol로 구현한다. 프로필·요청문으로 superpowers의 구현자와 리뷰어를 배정한다"
     },
     {
       "label": "심화",

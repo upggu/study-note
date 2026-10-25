@@ -11,8 +11,9 @@
 프로젝트 문서 참고 → spec → plan → 구현·검증 → 프로젝트 문서 갱신을 기본 흐름으로 삼고 다른 도구로도 이어받는다.
 이 학습 사이트를 운영하는 법에 한정하지 않는다.
 
-전체는 개요를 포함해 여섯 쪽이다. 기본 경로는 개요의 "따라 하기" → AGENTS.md → 설계·계획·진행 기록 →
-프로젝트 설계·규약 문서 → 작업 흐름이다. 다른 방식 비교(superpowers 없이 하는 층별 폴더·spec-kit·Kiro·monorepo)는
+전체는 개요를 포함해 일곱 쪽이다. 기본 경로는 개요의 "따라 하기" → AGENTS.md → 설계·계획·진행 기록 →
+프로젝트 설계·규약 문서 → 작업 흐름이다. Paseo 사용자는 이어서 "Paseo에서 구현과 리뷰 나누기"를 읽는다.
+다른 방식 비교(superpowers 없이 하는 층별 폴더·spec-kit·Kiro·monorepo)는
 "더 필요할 때"로 묶은 선택 심화다.
 superpowers skill 각각의 절차(TDD·디버깅·리뷰), 두 도구의 설정 항목 전체, API 개발, 모델 성능 비교는 범위 밖이다.
 
@@ -36,6 +37,18 @@ superpowers 배치로 바꾸며 제거). 덱을 다시 고치면 같은 시험�
 세션 시작 메시지가 `no CLAUDE.md found; AGENTS.md loaded: <경로>`임을 확인했다(2.1.278 때 적었던
 `agents-md:` 접두사는 없다). 그 밖의 권한·컨텍스트 복원은 실측한 것이 아니다.
 예시 서비스(업무 목록 CSV 내보내기)는 설명용 가정이다.
+
+Paseo 페이지는 같은 날 공식 Codex·Orchestration·Common orchestration workflows·Agent profiles 문서와 대조했다.
+중심 질문은 "superpowers 계획의 구현자·리뷰어를 Paseo에서 어떻게 배정하는가"다.
+`gpt-6-astra`(설계·조율 medium, 리뷰 high)와 `gpt-6.1-sol`(구현 medium)은 설명용 역할 배정이며,
+공식 추천 조합·성능 비교가 아니다. 두 모델의 선택 가능 여부는 Paseo Codex 모델 목록에서 확인했다.
+프로필 생성·위임·superpowers 실행의 결합은 실측하지 않았다. 공식 연동 기능이라고 설명하지 않는다.
+주 에이전트가 ledger를 관리하고 같은 worktree에서 구현 뒤 리뷰하는 예제로 한정한다.
+
+- Paseo Codex: <https://paseo.sh/docs/codex.md>
+- Paseo orchestration: <https://paseo.sh/docs/orchestration.md>
+- Paseo workflows: <https://paseo.sh/docs/orchestration-workflows.md>
+- Paseo profiles: <https://paseo.sh/docs/agent-profiles.md>
 
 - Anthropic memory: <https://code.claude.com/docs/en/memory>, changelog: <https://code.claude.com/docs/en/changelog>
   (v2.1.277, 2026-09-18부터 AGENTS.md 직접 로딩. 기본값 `claude-md-or-agents-md`는 작업 디렉터리·상위에
