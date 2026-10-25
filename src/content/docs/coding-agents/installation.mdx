@@ -1,0 +1,125 @@
+---
+title: "스킬 설치와 준비 확인"
+description: "superpowers·pm-product-discovery·pm-execution을 사용하는 도구에 설치하고 실제 스킬·버전과 프로젝트 지침을 확인한다"
+aliases: [스킬 설치, pm-product-discovery, pm-execution, create-prd]
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+import Thesis from '../../../components/docs/Thesis.astro';
+import TermIntro from '../../../components/docs/TermIntro.astro';
+
+<Thesis>
+
+- 사용하는 도구에 superpowers·pm-product-discovery·pm-execution 세 패키지를 설치한다.
+- 새 세션에서 실제 스킬 파일과 각 패키지의 버전을 확인한 뒤 프로젝트에 적용한다.
+- 파일 직접 열람, 세션의 자동 발견, 전체 작업 실행은 서로 다른 확인이다. 프로젝트 지침도 따로 확인한다.
+
+</Thesis>
+
+스킬 이름을 말했어도 실제 파일을 읽지 못하면 AI가 일반 지식으로 답할 수 있다.
+이 페이지는 **기획과 개발을 맡길 준비가 됐는지 어떻게 확인하는가**에 답한다.
+Codex CLI 또는 Claude Code가 설치·인증돼 있고 터미널 명령을 실행할 수 있는 환경에서 시작한다.
+
+<TermIntro terms={[["스킬", "Skill", "AI가 작업할 때 불러 읽는 지침 파일. 제품 질문이나 개발 절차를 안내한다."], ["플러그인", "Plugin", "관련 스킬과 기능을 함께 설치하는 묶음. pm-execution 안에 create-prd가 있다."]]} />
+
+## 사용하는 도구에 설치한다
+
+기본 설치 대상은 **superpowers·pm-product-discovery·pm-execution**이다.
+이미 설치·활성화돼 있으면 다시 설치하지 않는다. 두 도구를 함께 쓰는 경우 각각 설치한다.
+[superpowers 공식 설치 안내](https://github.com/obra/superpowers#installation)와
+[PM Skills 공식 설치 안내](https://github.com/phuryn/pm-skills#installation)가 최신 절차의 정본이다.
+
+### Codex CLI
+
+터미널에서 실행한다. `codex plugin`은
+[Codex 공식 명령 문서](https://learn.chatgpt.com/docs/developer-commands#codex-plugin)에서 확인할 수 있다.
+
+```bash
+codex plugin add superpowers@openai-curated-remote
+codex plugin marketplace add phuryn/pm-skills
+codex plugin add pm-product-discovery@pm-skills
+codex plugin add pm-execution@pm-skills
+```
+
+### Claude Code
+
+터미널에서 실행한다.
+
+```bash
+claude plugin install superpowers@claude-plugins-official
+claude plugin marketplace add phuryn/pm-skills
+claude plugin install pm-product-discovery@pm-skills
+claude plugin install pm-execution@pm-skills
+```
+
+명령을 지원하지 않거나 설치에 실패하면 공식 설치 안내에서 도구 버전과 오류를 확인한다.
+나중에 사용을 중단하려면 도구의 플러그인 관리에서 해당 패키지를 비활성화하거나 제거하고 새 세션을 연다.
+프로젝트에 작성한 문서는 그대로 남는다.
+
+## 새 세션에서 실제 스킬을 확인한다
+
+설치 후 새 세션을 열고 다음을 요청한다.
+
+```text
+superpowers·pm-product-discovery·pm-execution의 설치·활성화 상태와 버전을 확인해 줘.
+using-superpowers·brainstorming·create-prd와 제품 탐색에 필요한
+아이디어·가정·실험 스킬의 실제 SKILL.md를 읽고 경로와 담당 일을 알려 줘.
+세션에서 발견한 스킬과 경로를 찾아 직접 읽은 파일을 구분해 줘.
+찾지 못한 항목은 따로 보고하고 파일 작성이나 구현은 시작하지 마.
+```
+
+**받을 결과:** 패키지별 버전·읽은 파일 경로·역할과 미확인 항목이다.
+발견 목록에 없어서 직접 읽었다면 그 사실을 확인한다. 파일을 읽었다는 보고만으로
+새 프로젝트의 전체 작업 흐름까지 실행된 것은 아니다.
+
+PM Skills의 `/discover`·`/write-prd`는 Codex slash 명령으로 그대로 실행되지 않는다.
+이 덱은 두 도구에서 공통으로 **스킬 이름과 맡길 일을 자연어로 요청**한다
+([공식 도구별 차이](https://github.com/phuryn/pm-skills#codex-cli-openai)).
+
+### 이 덱이 대조한 원문
+
+2026-10-25 기준이다. 아래 버전을 맞추려고 재설치하지 말고 자기 환경의 설치본을 확인한다.
+
+| 대상 | 읽은 원문과 확인 범위 |
+|---|---|
+| Codex superpowers 7.0.1 | 설치 manifest와 using-superpowers·brainstorming·writing-plans 등 실제 스킬 |
+| Claude Code superpowers 7.0.0 | 설치 manifest와 실제 스킬. 7.0.1과 전체가 같다고 가정하지 않는다 |
+| 양쪽 pm-execution 2.2.0 | 설치 manifest와 create-prd. 공개 커밋과 같은 원문이라는 기존 대조 결과를 재사용했다 |
+| pm-product-discovery 2.2.0 | marketplace 체크아웃의 manifest·탐색 스킬·discover 원문. 설치·활성화·실행을 확인한 것은 아니다 |
+
+create-prd의 기본 파일명과 정보 부족 시 질문 조건은
+[공개 create-prd 원문](https://github.com/phuryn/pm-skills/blob/07b34f64ee828df08953f505b7f747aef85ae7c6/pm-execution/skills/create-prd/SKILL.md)을 따른다.
+공개 커밋과 설치본의 동일성은 이 스킬에 대해 확인했으며 패키지 전체의 동일성을 뜻하지 않는다.
+탐색의 역할과 PRD 인계는 같은 커밋의
+[discover 원문](https://github.com/phuryn/pm-skills/blob/07b34f64ee828df08953f505b7f747aef85ae7c6/pm-product-discovery/commands/discover.md)과 대조했다.
+
+superpowers도 설치본을 따른다. 예를 들어 설계가 필요한 작은 변경에서
+[7.0.1 brainstorming](https://github.com/obra/superpowers/blob/2ce8aa15d05bd57213e6f746f953aafb7ded7a8b/skills/brainstorming/SKILL.md)은 짧은 설계 문서를,
+7.0.0 설치본은 대화의 설명을 승인 대상으로 삼는다. 덱이 별도 크기 기준이나 승인 생략 규칙을 만들지 않는다.
+
+## 프로젝트 지침도 읽히는지 확인한다
+
+기존 프로젝트에서는 작업 폴더를 열고 다음을 요청한다. 빈 프로젝트에 지침이 없다면
+[프로젝트 적용](/coding-agents/project-setup/)에서 만든 뒤 같은 확인을 한다.
+
+```text
+이 프로젝트에 적용되는 지침의 출처와 읽을 문서 경로를 알려 줘.
+실제로 읽은 파일과 아직 확인하지 못한 항목을 구분해 줘.
+```
+
+Codex에서는 보고한 지침을 실제 파일과 대조한다
+([공식 확인 방법](https://learn.chatgpt.com/docs/agent-configuration/agents-md)).
+Claude Code는 `/memory`에서 경로를 확인한다. AGENTS.md 직접 읽기는 버전·설정 조건이 있으며,
+프로젝트의 CLAUDE.md 때문에 기본 설정에서 직접 로딩되지 않을 수 있다.
+작동하는 `@AGENTS.md` import를 이름만으로 지우지 않는다
+([공식 로딩 조건과 확인](https://code.claude.com/docs/en/memory#my-agents-md-isnt-loading)).
+
+| 확인할 것 | 다음 단계로 갈 수 있는 결과 |
+|---|---|
+| 스킬 | 이번 작업에 필요한 실제 SKILL.md를 읽고 버전·역할을 확인했다. 읽지 못한 필수 스킬은 먼저 해결한다 |
+| 지침 | 현재 프로젝트에 적용되는 파일과 연결 문서를 확인했다 |
+| 확인 범위 | 파일 열람·자동 발견·작업 실행 중 실제로 확인한 것을 보고했다 |
+
+로딩 문제가 있으면 [지침 로딩과 문제 해결](/coding-agents/agents-md/)에서 해당 증상만 확인한다.
+
+<LinkCard title="프로젝트에 적용하기" description="기존 문서를 연결하거나 새 프로젝트의 첫 기획과 실행 환경을 준비한다." href="/coding-agents/project-setup/" />

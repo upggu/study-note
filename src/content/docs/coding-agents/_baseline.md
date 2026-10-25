@@ -1,110 +1,105 @@
-# Claude Code · Codex 레포 운영 덱의 기준
-
-이 덱을 수정하기 전에 읽는다.
+# AI에게 기획부터 개발까지 맡기기 — 덱 기준
 
 ## 독자·학습 결과·범위
 
-독자는 Git·Markdown·기본 명령 실행을 알고, 자신의 프로젝트에서 Codex와 Claude Code를 함께 쓴다.
-독자는 두 도구에 superpowers를 설치해 쓴다(설치 안내는 개요에 있다). 이 덱을 읽고 그 레포에 `AGENTS.md`를
-두고, superpowers로 작업별 spec·plan을 관리하며, 프로젝트의 현재 구조·규약을 별도 문서에서 유지할 수 있게 한다.
-공유 지침은 AGENTS.md 하나로 관리하고, Claude Code도 이를 직접 읽는 버전·설정을 전제로 한다.
-프로젝트 문서 참고 → spec → plan → 구현·검증 → 프로젝트 문서 갱신을 기본 흐름으로 삼고 다른 도구로도 이어받는다.
-이 학습 사이트를 운영하는 법에 한정하지 않는다.
+독자는 Git·Markdown·기본 명령 실행을 알고 Codex 또는 Claude Code로 자신의 프로젝트를 개발한다.
+PM Skills와 superpowers의 내부 절차를 먼저 공부하지 않아도 설치·적용·기획·개발·갱신과 이어받기를
+AI에게 요청하고, 결과에서 제품 결정·승인할 설계·검증 증거·남은 일을 확인할 수 있게 한다.
 
-전체는 개요를 포함해 일곱 쪽이다. 기본 경로는 개요의 "따라 하기" → AGENTS.md → 설계·계획·진행 기록 →
-프로젝트 설계·규약 문서 → 작업 흐름이다. Paseo 사용자는 이어서 "Paseo에서 구현과 리뷰 나누기"를 읽는다.
-다른 방식 비교(superpowers 없이 하는 층별 폴더·spec-kit·Kiro·monorepo)는
-"더 필요할 때"로 묶은 선택 심화다.
-superpowers skill 각각의 절차(TDD·디버깅·리뷰), 두 도구의 설정 항목 전체, API 개발, 모델 성능 비교는 범위 밖이다.
+기본 경로는 _deck.mjs의 기본 가이드 그룹이다. 페이지마다 상황별 요청문·받을 결과·확인할 핵심을 둔다.
+적용한 프로젝트의 폴더 구조·지침 로딩 원리·문서 역할과 수명·ledger·도구별 실행은 부록이다.
+설치와 실제 로딩 확인, 제품 결정, 스킬의 설계·계획 승인, 인계 전제는 기본 경로에 남긴다.
 
-2026-10-24에 10쪽을 6쪽으로 줄였다. 따라 하기 쉽게 만드는 것이 목적이었다. 기본 경로에서는 요구 ID·마일스톤
-표·세 층 구조를 빼고, 그것들은 "더 필요할 때"에서만 다룬다. 지운 페이지의 옛 URL은
-`src/pages/coding-agents/[page].astro`가 새 위치로 보낸다. 이 라우터의 절별 목적지와 같은 URL의 본문에 둔
-호환 anchor를 함께 유지한다. `product-specs`는 작업별 spec을 설명하는 `design-and-plans`로 연결한다.
+제품 아이디어·해결 방향 탐색과 가정·실험 설계는 PM Skills의 pm-product-discovery,
+PRD 작성과 리뷰는 pm-execution의 create-prd, 개발 설계·계획·구현·검증은 superpowers가 맡는다.
+기본 설치는 세 패키지이지만 확정 요구의 개발·버그 수정에 제품 탐색을 반복하지 않는다.
+두 도구를 모두 쓰도록 요구하지 않는다. API 개발·모델 성능 비교·스킬별 상세 절차는 범위 밖이다.
 
-같은 날 superpowers 배치를 기본으로 바꿨다. 작업별 spec·plan·ledger는 superpowers의 형식과 경로를 따른다.
-덱은 AGENTS.md로 문서를 연결하는 법, 도구 간 인계, 프로젝트 설계·규약을 관련 구현과 함께 갱신하는 원칙을 더한다.
-프로젝트 문서는 기존 README·docs를 활용하고, 별도 관리가 필요할 때 `docs/design-docs/`를 쓴다.
+## 최소 연결 원칙
 
-그 전에 가짜 레포(낡은 CLAUDE.md·.cursorrules·ADR·루트 PLAN.md)에서 이 대화를 모르는 에이전트에게 덱 6쪽만 주고
-"가이드대로 바꿔 줘"를 시켜 봤다. 질문 없이 잘 수행했고, 에이전트가 지어내야 했던 세 곳을 덱에 보탰다.
-개요의 "AI에게 시킨다" 요청문과 기존 파일 처리 표, AGENTS.md 페이지의 코드 스타일 행이다(계획 README 템플릿은
-superpowers 배치로 바꾸며 제거). 덱을 다시 고치면 같은 시험을 반복해 빠진 곳을 찾는다.
+적용할 경로·역할·문서 갱신 규칙의 정본은
+[project-setup.mdx의 AI가 적용할 연결 규칙](project-setup.mdx#ai가-적용할-연결-규칙)이다.
+추가 규칙은 기반 스킬만으로 해결되지 않는 연결·보관·갱신 문제와 그 이유가 있을 때만 둔다.
+기존 프로젝트 문서·Git 정책·진행 중 작업을 보존하고, 사용자에게 문서 배치의 대안을 고르게 하지 않는다.
+문서 연결만 요청하면 탐색·첫 PRD 작성·환경 설치로 넓히지 않는다. PRD가 없으면 기획 요청으로 연결한다.
+기존 문서의 수정도 요청에서 허용한 대상과 범위 안에서만 한다.
 
-## 현재성 기준
+PRD는 create-prd의 파일명·내용 구성을 유지하고 저장 폴더만 지정한다.
+스킬이 정한 절차·형식·역할을 요청문이나 별도 템플릿에서 재정의하지 않는다.
+작은 변경의 파일 생략, 기능 수에 따른 문서 분리, 요구 ID 도입, ledger Git 추적,
+다른 도구의 추가 리뷰를 덱의 필수 규칙으로 만들지 않는다.
+공유 지침의 정본은 AGENTS.md로 연결하되 기존 도구별 연결 파일을 일괄 삭제하지 않는다.
+사전 지정된 실행 선호는 subagent-driven-development이며 하위 에이전트 도구가 없으면 executing-plans다.
+이미 정한 선호로 인계하고 공통 연결 규칙으로 강제 복제하지 않는다. 실제 적용 조건과 리뷰는 설치 스킬을 따른다.
+하위 에이전트 도구가 없어 native 실행으로 최종 self-review를 수행하면 그 사실과 한계를 보고한다.
+실제 도구가 없는데 위임이나 독립 리뷰를 완료했다고 쓰지 않는다.
+실행 선호 지정은 superpowers의 설계 승인·계획 리뷰와 확인을 생략하는 근거가 아니다.
 
-2026-10-24에 아래 공식 문서와 공개 레포의 실제 파일을 대조했다. 같은 날 Claude Code 2.1.310 CLI 본문에서
-세션 시작 메시지가 `no CLAUDE.md found; AGENTS.md loaded: <경로>`임을 확인했다(2.1.278 때 적었던
-`agents-md:` 접두사는 없다). 그 밖의 권한·컨텍스트 복원은 실측한 것이 아니다.
-예시 서비스(업무 목록 CSV 내보내기)는 설명용 가정이다.
+탐색만 요청하면 후보·근거·가정·실험 판정 기준에서 멈춘다. PRD까지 요청하면 제품 맥락과 남은 가정을
+create-prd로 넘긴다. 문제·대상 사용자·성공 기준이 부족하면 스킬에 따라 먼저 질문하고,
+사용자가 그대로 진행하라고 지시했을 때만 그 공백을 가정으로 표시한다. 실험 계획을 검증 결과로 쓰지 않는다.
+PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안하고 파일은 바꾸지 않는다.
+리뷰와 문서 수정을 함께 요청하면 허용한 교정만 기존 위치에 반영하고 제품 목적·범위·정책 변경은 제안으로 남긴다.
+새 프로젝트 세팅에서 만든 PRD는 다음 기획 단계에서 다시 만들지 않고 같은 파일을 리뷰한다.
 
-Paseo 페이지는 같은 날 공식 Codex·Orchestration·Common orchestration workflows·Agent profiles 문서와 대조했다.
-중심 질문은 "superpowers 계획의 구현자·리뷰어를 Paseo에서 어떻게 배정하는가"다.
-`gpt-6-astra`(설계·조율 medium, 리뷰 high)와 `gpt-6.1-sol`(구현 medium)은 설명용 역할 배정이며,
-공식 추천 조합·성능 비교가 아니다. 두 모델의 선택 가능 여부는 Paseo Codex 모델 목록에서 확인했다.
-프로필 생성·위임·superpowers 실행의 결합은 실측하지 않았다. 공식 연동 기능이라고 설명하지 않는다.
-주 에이전트가 ledger를 관리하고 같은 worktree에서 구현 뒤 리뷰하는 예제로 한정한다.
+기획에서 합의한 요구는 개발의 입력이다. 개발 중 제품 목적·범위·정책을 바꿔야 하면 사용자 결정을 받는다.
+관련 제품·기술 문서는 구현과 최종 수정에 맞춰 갱신하고, 구현 완료를 출시 완료로 표현하지 않는다.
+작업이 끝난 spec·plan은 당시 기록으로 보존하고 현재 기준은 지속 문서에 둔다.
 
-- Paseo Codex: <https://paseo.sh/docs/codex.md>
-- Paseo orchestration: <https://paseo.sh/docs/orchestration.md>
-- Paseo workflows: <https://paseo.sh/docs/orchestration-workflows.md>
-- Paseo profiles: <https://paseo.sh/docs/agent-profiles.md>
+## 근거와 확인 범위
 
-- Anthropic memory: <https://code.claude.com/docs/en/memory>, changelog: <https://code.claude.com/docs/en/changelog>
-  (v2.1.277, 2026-09-18부터 AGENTS.md 직접 로딩. 기본값 `claude-md-or-agents-md`는 작업 디렉터리·상위에
-  CLAUDE.md·CLAUDE.local.md가 없을 때만 AGENTS.md를 읽고, 있으면 CLAUDE.md만 읽는다. 함께 읽기는
-  `claude-md-and-agents-md`. v2.1.281부터 Bedrock·Vertex·Foundry·게이트웨이·telemetry off 세션도 직접 읽는다.
-  남은 예외는 이전 버전·업그레이드 직후 첫 세션·내장 plugin 비활성. 덱은 업데이트·설정·새 세션으로 직접 로딩 조건을 맞춘다.
-  v2.1.285부터 `pluginConfigs` 키는 `cc-plugin-agents-md@builtin`. AGENTS.local.md·AGENTS.override.md·.agents/는 읽지 않음.
-  하위 폴더 AGENTS.md는 그 폴더 파일을 읽을 때 로드. 직접 읽은 AGENTS.md는 /context에 안 나옴. 파일당 200줄 아래 권장.
-  v2.1.283부터 `/doctor prompt-audit`가 지침 파일의 낡은 경로·모순을 점검. v2.1.284부터 기본 권한 모드가 auto.)
-- Anthropic best practices: <https://code.claude.com/docs/en/best-practices>
-  (인터뷰 → 스펙 파일 → 새 세션 구현, 완료 전 별도 컨텍스트 리뷰)
-- Anthropic hooks: <https://code.claude.com/docs/en/hooks-guide>
-- OpenAI AGENTS: <https://learn.chatgpt.com/docs/agent-configuration/agents-md>
-  (전역 `~/.codex/AGENTS.md` → 루트→cwd, 폴더당 `AGENTS.override.md` → `AGENTS.md` 하나, 합계 32 KiB, cwd 아래는 시작 때 읽지 않음)
-- OpenAI sandbox·승인: <https://learn.chatgpt.com/docs/sandboxing>, <https://learn.chatgpt.com/docs/agent-approvals-security>
-- OpenAI harness engineering: <https://openai.com/index/harness-engineering/>
-  (`docs/product-specs`·`design-docs`·`exec-plans/active·completed`. 추천 구조의 이름 출처)
-- openai/codex 레포: 2026-09-30 커밋 18131270fe에서 루트 AGENTS.md와 `.codex/skills/`를 삭제. 덱은 옛 커밋 고정 링크와 삭제 사실을 함께 적는다.
-- superpowers: <https://github.com/obra/superpowers> (v7.0.1, main 2ce8aa15, 2026-10-21. 별 304k. 설계 `docs/superpowers/specs/<날짜>-<주제>-design.md`,
-  계획 `docs/superpowers/plans/<날짜>-<기능>.md`, ledger `.superpowers/sdd/<plan-basename>/progress.md`. `sdd-workspace`가
-  `.superpowers/sdd/.gitignore`에 `*`를 쓰되 이미 있으면 덮어쓰지 않음(v7.0.0). 덱의 `*`/`!*/`/`!*/progress.md`/`!.gitignore`
-  패턴은 로컬 git에서 progress.md만 추적되고 brief는 제외됨을 확인. 마지막 리뷰 뒤 workspace 삭제. using-superpowers가
-  "AGENTS.md가 skill보다 우선"을 명시. brainstorming·writing-plans 모두 "사용자 선호가 기본 경로를 덮는다"고 적음.
-  Claude 설치 `/plugin install superpowers@claude-plugins-official`, Codex는 `/plugins`에서 검색. 완료 후 규약을 옮기는 단계 없음)
-- GitHub spec-kit: <https://github.com/github/spec-kit> (`specs/<번호>-<기능>/`, constitution은 `.specify/memory/`),
-  Kiro specs: <https://kiro.dev/docs/specs/> (requirements·design·tasks, 2026-10부터 bugfix.md 유형 추가)
-- 공개 레포 관찰: ghostty 22f100c6(AGENTS.md 약 210단어), opencode c272a63c(약 190줄), tldraw 12921f6d(AGENTS.md + `@AGENTS.md` CLAUDE.md + `.agents/skills/`). 셋 다 계획 문서 없음.
+2026-10-25에 아래 실제 파일과 공식 문서를 대조했다. 본문은 확인한 버전에 근거한다.
+독자는 설치된 SKILL.md를 사용하며, 버전 차이가 생기면 덱의 요약으로 스킬을 덮어쓰지 않는다.
 
-## 서술 규칙
+- PM Skills pm-execution 2.2.0, 공개 근거 `07b34f64ee828df08953f505b7f747aef85ae7c6`:
+  [create-prd](https://github.com/phuryn/pm-skills/blob/07b34f64ee828df08953f505b7f747aef85ae7c6/pm-execution/skills/create-prd/SKILL.md),
+  [설치 안내](https://github.com/phuryn/pm-skills/blob/07b34f64ee828df08953f505b7f747aef85ae7c6/README.md#installation).
+  양쪽 도구의 설치된 create-prd를 읽고 PRD 작성·기존 PRD 리뷰·기본 파일명과 질문 조건을 확인했다.
+  공개 커밋의 create-prd와 설치본이 동일하다는 이전 대조 결과를 재사용한다. 패키지 전체 동일성을 뜻하지 않는다.
+- PM Skills pm-product-discovery 2.2.0: 같은 공개 커밋의
+  [discover](https://github.com/phuryn/pm-skills/blob/07b34f64ee828df08953f505b7f747aef85ae7c6/pm-product-discovery/commands/discover.md)와
+  brainstorm-ideas-new·identify-assumptions-new·brainstorm-experiments-new를 로컬 marketplace 체크아웃에서 읽었다.
+  이 확인은 패키지의 설치·활성화·실행 확인이 아니다. 탐색 산출물은 실제 저장 경로로 PRD에 연결하며 별도 고정 파일명·양식을 만들지 않는다.
+- Codex superpowers 7.0.1, 공개 근거 `2ce8aa15d05bd57213e6f746f953aafb7ded7a8b`:
+  [skills](https://github.com/obra/superpowers/tree/2ce8aa15d05bd57213e6f746f953aafb7ded7a8b/skills).
+  using-superpowers·brainstorming·writing-plans·subagent-driven-development·executing-plans·
+  verification-before-completion·finishing-a-development-branch의 SKILL.md와
+  sdd-workspace·final-review 참조를 확인했다.
+  실행 방식 사전 지정은 계획 리뷰를 생략하지 않는다. 지속 문서 갱신은 덱의 연결 규칙이다.
+  Claude Code 설치본은 7.0.0이며 brainstorming도 직접 읽었다. 7.0.1의 짧은 설계 문서 승인과
+  7.0.0의 작은 변경 대화 설명 승인을 같은 동작으로 쓰지 않는다. 모든 스킬이 동일하다고 가정하지 않는다.
+- [Codex plugin 명령](https://learn.chatgpt.com/docs/developer-commands#codex-plugin),
+  [AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md),
+  [Claude Code memory](https://code.claude.com/docs/en/memory).
+  Codex plugin CLI 도움말도 대조했다. Claude Code의 직접 로딩은 버전·설정 조건이 있다.
+  Claude memory 공식 원문을 2026-10-25에 다시 대조했다. /memory는 파일 위치 목록이며 없는 파일 위치도 표시한다.
+  /context의 시작 시 CLAUDE.md·rules 확인, 직접 AGENTS.md 로딩 안내·버전·설정을 구분한다.
+  작동하는 @AGENTS.md import는 유지할 수 있고 도구 전용 지침도 범위 확인 없이 삭제하지 않는다.
+- Paseo 부록은 [orchestration](https://paseo.sh/docs/orchestration.md)·
+  [workflows](https://paseo.sh/docs/orchestration-workflows.md)·
+  [profiles](https://paseo.sh/docs/agent-profiles.md)를 2026-10-25에 다시 대조했다.
+  프로필·When to use와 실제 작업 폴더 연결에 한정한다. 모델·추론 수준은 예시이고 공식 성능 추천이 아니다.
+  provider 내부 하위 에이전트에 프로필이 자동 적용된다고 가정하지 않으며 결합 실행은 미실측이다.
 
-- **사족을 넣지 않는다.** "모든 레포에 강제하지 않는다", "실측은 아니다" 같은 유보는 index와
-  이 baseline에 한 번만 두고 본문에서 반복하지 않는다. 본문은 "이렇게 한다"로 쓰고 근거 링크를 그 문장에 건다.
-- 페이지마다 중심 질문 하나. AGENTS.md·작업별 파일·프로젝트 문서·작업 흐름을 구분하고,
-  적용에 필요한 예시나 요청문을 둔다. 새 개념은 없으면 생기는 문제 → 해법 순서로 연다.
-- spec은 이번 작업의 요구·완료 조건, plan은 실행 순서, ledger는 임시 진행 기록이다. 완료된 spec·plan은
-  당시 기록으로 남기며, 프로젝트 문서는 현재 구조·데이터·규약과 결정 이유를 설명하고 관련 코드와 함께 갱신한다.
-- 프로젝트 문서의 참고·갱신은 기본 흐름이다. 별도 폴더 생성은 선택이며 기존 문서를 활용할 수 있다.
-- 설명용 예시는 가상 업무 서비스의 CSV 내보내기 하나로 통일한다. 설계 `docs/superpowers/specs/2026-10-24-csv-export-design.md`,
-  계획 `docs/superpowers/plans/2026-10-24-csv-export.md`, ledger `.superpowers/sdd/2026-10-24-csv-export/progress.md`,
-  규약 `docs/design-docs/csv-output.md`. superpowers 없이 하는 층별 폴더 예시는 `docs/exec-plans/active/0001-csv-export.md`.
-- superpowers의 파일 형식·경로·skill 이름은 지어내지 않고 고정 커밋의 SKILL.md를 인용한다.
-  ledger 커밋용 `.gitignore`와 프로젝트 문서 갱신은 덱의 운영 방식으로 구분한다.
-- 작은 수정의 설계·계획 파일 생략은 AGENTS.md에 명시하는 덱의 운영 원칙이다. v7.0.1의 brainstorming은
-  명확한 단순 요청을 바로 처리하지만, 설계가 필요한 작은 변경은 짧은 설계 문서를 작성·승인받고 writing-plans로 넘긴다.
-  "프로젝트만 파일을 만든다"를 제품의 기본 동작으로 설명하지 않는다.
-- 구현·검증·작업별 커밋·리뷰는 superpowers 절차를 따른다. 가이드의 템플릿·요청문에 별도 커밋 금지 정책을 넣지 않는다.
-  merge·push·PR·브랜치 보존은 finishing 단계의 선택이며, 실행 중 커밋과 구분한다.
-- 공유 지침은 CLAUDE.md 없는 AGENTS.md 하나다. 기존 도구별 지침은 적용 범위에 맞는 AGENTS.md에 흡수한 뒤 지운다.
-  어댑터 생성이나 두 파일 동시 로딩을 권하지 않는다. 직접 로딩이 안 되면 버전·설정·세션을 바로잡는다.
-- 지침은 모델이 읽는 권고이고 강제는 hook·권한·sandbox가 맡는다. 설정 항목 전체는 공식 문서 링크로 대신한다.
-- 멈출 지점(계획까지 / 끝까지)은 요청문에 적는다. 사람이 결정하는 지점(설계 승인·계획 승인과 실행 방식·merge 선택)은
-  작업 흐름 페이지에서 정하고 다른 페이지는 링크한다.
-- 도구를 바꿔 리뷰하는 배치를 권한다. 정확성·요구 누락만 보고하게 한다.
-- 이 저장소도 2026-10-24부터 superpowers 배치를 쓴다. 설계·계획 파일 생성은 사용자 요청과 superpowers의
-  작업 규모 판단·절차를 따른다. 저장소 정책(`design-docs/` 없이 기존 본문·baseline·지침을 활용)은
-  덱에 적지 않는다. 정본은 AGENTS.md의 작업 계획이다.
-- 소유자의 개인 레포는 이름으로 인용하지 않는다.
+설치본 직접 열람과 세션의 자동 발견·실행을 구분한다.
+이 개편에서 패키지 설치·새 세션의 전체 스킬 실행·Paseo 결합·독립 에이전트 이관 시험은 하지 않았다.
+공식 자료 대조, 콘텐츠 의미 리뷰, 사이트 검증을 실제 실행 시험과 구분한다.
 
-각 학습 본문은 Thesis·TermIntro와 하나의 중심 질문을 가지며 번호 없는 파일명·제목·URL을 쓴다.
+## 작성과 호환성
+
+- 기본 가이드는 요청과 결과 판정이 중심이다. 스킬의 질문 목록·양식을 요청문에 길게 복제하지 않는다.
+  부록을 추가 필수 실행 절차로 만들지 않으며 스킬의 리뷰 절차를 다시 정의하지 않는다.
+- 공식 동작·덱의 추가 규칙·설명용 가정·미확인은 해당 설명 가까이에서 구분한다.
+- 예시는 가상 업무 서비스의 CSV 내보내기다. PRD는 `docs/product-specs/PRD-task-manager.md`,
+  설계는 `docs/superpowers/specs/2026-10-24-csv-export-design.md`,
+  계획은 `docs/superpowers/plans/2026-10-24-csv-export.md`를 사용한다.
+  처음 한도는 1,000건, 후속 변경은 5,000건이며 실제 제품 사실이 아니다.
+- 기본 가이드는 5쪽, 부록은 폴더 구조·지침 로딩·문서 역할과 수명·Paseo의 4쪽이다.
+  project-structure는 가상 task-manager의 파일 위치·수명·읽기 연결을 보여 준다. 이 사이트 자체의 구조나
+  모든 프로젝트에 강제할 새 배치 규칙으로 쓰지 않는다. 경로·역할의 정본은 기존 project-setup의 연결 규칙이다.
+  현재 기술 문서·CSV 규약과 갱신 판단 예제는 design-and-plans에, 하위 지침 설명은 agents-md에 둔다.
+  현재 기술 문서는 기존 위치 또는 README에서 유지하며 기능 수로 파일 분리를 강제하지 않는다.
+  CSV 출력 규약·HTTP 상태는 가상 예제의 설계 선택이며 보편적인 안전 보장이 아니다.
+  현재 내부 링크는 실제 페이지·절을 가리키게 유지한다.
+  삭제·통합한 페이지의 옛 주소·절 ID 호환을 위한 리다이렉트나 빈 이동 안내는 유지하지 않는다.
+- 이 학습 사이트 자체의 실행 정책은 루트 AGENTS.md가 정한다. 덱의 예시 프로젝트 정책과 혼용하지 않는다.

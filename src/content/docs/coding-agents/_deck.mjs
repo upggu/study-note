@@ -2,7 +2,7 @@ export default {
   "navOrder": 2100,
   "catalogOrder": 2100,
   "label": "Claude Code · Codex",
-  "title": "Claude Code · Codex 레포 운영",
+  "title": "AI에게 기획부터 개발까지 맡기기",
   "icon": "pencil",
   "aliases": [
     "코딩 에이전트",
@@ -10,10 +10,14 @@ export default {
     "AGENTS.md",
     "CLAUDE.md",
     "superpowers",
+    "PM Skills",
+    "pm-execution",
+    "product-specs",
+    "PRD",
     "design-docs",
     "ledger"
   ],
-  "description": "superpowers로 작업별 spec·plan을 관리하고, 프로젝트의 현재 설계·규약을 함께 갱신하며 Codex와 Claude Code로 작업을 이어가는 방법.",
+  "description": "PM Skills와 superpowers에 기획·개발을 맡기는 요청 중심 가이드. 설치·프로젝트 적용·결과 확인·갱신과 이어받기.",
   "category": "tools",
   "tags": [
     "agent"
@@ -21,70 +25,83 @@ export default {
   "termIntro": "required",
   "sidebar": [
     {
-      "label": "기본",
+      "label": "기본 가이드",
       "pages": [
+        "installation",
+        "project-setup",
+        "product-requirements",
+        "workflow",
+        "updates-and-handoff"
+      ]
+    },
+    {
+      "label": "부록",
+      "pages": [
+        "project-structure",
         "agents-md",
         "design-and-plans",
-        "design-docs"
-      ]
-    },
-    {
-      "label": "작업 흐름",
-      "pages": [
-        "workflow",
         "paseo-agents"
-      ]
-    },
-    {
-      "label": "더 필요할 때",
-      "pages": [
-        "other-approaches"
       ]
     }
   ],
   "map": [
     {
-      "label": "지침",
-      "href": "/coding-agents/agents-md/",
-      "title": "AGENTS.md",
+      "label": "설치",
+      "href": "/coding-agents/installation/",
+      "title": "스킬 설치와 준비 확인",
       "tone": "key",
-      "desc": "명령·제약·읽을 문서·작업 방식 40줄. 두 도구가 읽는 조건과 읽혔는지 확인하는 법"
+      "desc": "사용하는 도구에 설치하고 실제 스킬·지침 로딩을 확인한다"
     },
     {
-      "label": "파일",
-      "href": "/coding-agents/design-and-plans/",
-      "title": "설계 · 계획 · 진행 기록",
-      "tone": "warn",
-      "desc": "작업별 spec·plan과 임시 실행 기록의 역할. 완료된 작업 기록과 프로젝트의 현재 기준을 구분한다"
+      "label": "적용",
+      "href": "/coding-agents/project-setup/",
+      "title": "프로젝트에 적용하기",
+      "tone": "key",
+      "desc": "기존 문서를 연결하거나 새 프로젝트의 첫 기획과 실행 환경을 준비한다"
     },
     {
-      "label": "프로젝트",
-      "href": "/coding-agents/design-docs/",
-      "title": "프로젝트 설계·규약 문서",
-      "tone": "zone",
-      "desc": "현재 구조·데이터·규약과 결정 이유. 작업 시작 때 참고하고 관련 구현과 함께 갱신한다"
+      "label": "기획",
+      "href": "/coding-agents/product-requirements/",
+      "title": "제품 기획과 PRD 리뷰 맡기기",
+      "tone": "key",
+      "desc": "제품 맥락을 전달하고 범위·가정·성과 기준을 확인한다"
     },
     {
-      "label": "흐름",
+      "label": "개발",
       "href": "/coding-agents/workflow/",
-      "title": "참고 · 설계 · 구현 · 갱신",
+      "title": "개발 맡기고 결과 확인하기",
       "tone": "ok",
-      "desc": "프로젝트 문서에서 시작해 spec·plan으로 구현하고 현재 기준을 갱신하는 흐름과 도구 간 인계"
+      "desc": "합의한 요구를 넘겨 설계·계획을 검토하고 개발 결과를 확인한다"
     },
     {
-      "label": "위임",
-      "href": "/coding-agents/paseo-agents/",
-      "title": "Paseo에서 구현과 리뷰 나누기",
-      "tone": "zone",
-      "desc": "Astra로 설계·조율하고 Sol로 구현한다. 프로필·요청문으로 superpowers의 구현자와 리뷰어를 배정한다"
+      "label": "갱신",
+      "href": "/coding-agents/updates-and-handoff/",
+      "title": "변경하고 이어받기",
+      "tone": "ok",
+      "desc": "요구와 문서를 함께 갱신하고 같은 폴더·다른 폴더의 인계 조건을 확인한다"
     },
     {
-      "label": "심화",
-      "title": "더 필요할 때",
+      "label": "참조",
+      "title": "필요할 때 찾는 부록",
       "tone": "mute",
-      "desc": "superpowers 없이 하는 법, 다른 방식의 비교와 monorepo의 지침 경계",
+      "desc": "적용한 프로젝트의 폴더 구조·지침 로딩·문서 갱신과 수명·Paseo 연결 조건",
       "items": [
-        ["다른 방식과 비교", "/coding-agents/other-approaches/"]
+        [
+          "적용한 프로젝트의 폴더 구조",
+          "/coding-agents/project-structure/"
+        ],
+        [
+          "AGENTS.md와 지침 로딩",
+          "/coding-agents/agents-md/"
+        ],
+        [
+          "문서 역할과 수명",
+          "/coding-agents/design-and-plans/"
+        ],
+        [
+          "Paseo 프로필과 작업 폴더 연결",
+          "/coding-agents/paseo-agents/"
+        ]
       ]
     }
   ]
