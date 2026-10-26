@@ -1,0 +1,187 @@
+---
+title: "계획을 레포 밖에 둘 때"
+description: "동료와 함께 쓰는 레포에 개인 파일을 넣을 수 없을 때, 개인 노트 폴더의 exec-plans에 계획을 두고 요청문으로 경로를 넘겨 superpowers·pm-skills를 그대로 쓴다"
+aliases: [exec-plans, 개인 계획, Obsidian, 레포 밖 계획, 여러 레포]
+---
+
+import { LinkCard } from '@astrojs/starlight/components';
+import Thesis from '../../../components/docs/Thesis.astro';
+import TermIntro from '../../../components/docs/TermIntro.astro';
+
+<Thesis>
+
+- 계획 파일의 위치는 요청문 한 줄로 바꿀 수 있다. superpowers의 writing-plans는 사용자가 정한 위치가 기본 경로보다 우선한다고 적어 두었다.
+- 개인 계획은 작업 하나당 파일 하나로 `active/`에 평평하게 두고, 끝나면 `completed/`로 옮긴다. 레포별 폴더를 만들지 않는다.
+- 진행 기록은 계획 파일의 체크박스다. ledger·개인 스킬·레포 안 로컬 지침은 쓰지 않는다. 작업이 커지면 그때 실행 스킬을 붙인다.
+- 한 작업이 여러 레포를 건드리면 Task 줄에 레포 경로를 적고, 세션은 지금 고칠 레포에서 연다.
+- 레포에는 파일을 하나도 넣지 않는다. 규약은 계획 폴더의 AGENTS.md 한 장에 두고, 필요하면 요청문이나 전역 지침으로 가리킨다.
+
+</Thesis>
+
+기본 가이드는 설계·계획을 레포의 `docs/superpowers/`에 커밋하는 흐름이다. 그런데 동료와 함께 쓰는
+레포에는 개인 작업 계획을 올릴 수 없고, 한 사람이 여러 레포를 번갈아 다루기도 한다.
+이 페이지는 **계획을 개인 노트 폴더에 두면서 같은 스킬을 쓰려면 무엇만 바꾸면 되는가**에 답한다.
+스킬 설치는 [스킬 설치와 준비 확인](/coding-agents/installation/)을 마친 상태에서 시작한다.
+
+<TermIntro terms={[["exec-plans", "", "이 페이지가 예로 드는 개인 계획 폴더 이름. Obsidian 같은 개인 노트 폴더 아래에 둔다."], ["전역 지침", "", "레포가 아니라 홈 폴더에 두어 모든 세션에 들어가는 지침 파일. Claude Code는 ~/.claude/CLAUDE.md, Codex는 ~/.codex/AGENTS.md를 읽는다."]]} />
+
+## 바뀌는 것은 저장 위치 한 줄이다
+
+```d2 sketch=false title="계획은 개인 노트 폴더에 두고, 세션은 지금 고칠 레포에서 연다"
+direction: down
+
+classes: {
+  focus: { style: { stroke-width: 4; bold: true } }
+}
+
+notes: 개인 노트 폴더 {
+  rules: exec-plans/AGENTS.md { shape: page }
+  plan: "exec-plans/active/\n2026-10-27-csv-export.md" { shape: page; class: focus }
+  rules -> plan: 규약 { style.stroke-dash: 3 }
+}
+
+a: "~/workspace/task-manager" { shape: package }
+b: "~/workspace/task-manager-web" { shape: package }
+
+notes.plan -> a: "Task 1~2" { style.stroke-width: 3 }
+notes.plan -> b: "Task 3" { style.stroke-width: 3 }
+```
+
+계획을 쓸 때는 brainstorming·writing-plans·create-prd에 **저장할 파일 경로를 말한다.**
+writing-plans는 기본 저장 위치를 `docs/superpowers/plans/`로 두되 사용자 선호가 이를 덮어쓴다고 명시한다
+([writing-plans 원문](https://github.com/obra/superpowers/blob/2ce8aa15d05bd57213e6f746f953aafb7ded7a8b/skills/writing-plans/SKILL.md)).
+실행할 때는 그 경로를 요청문에 적고 진행할 Task를 지정한다. 끝난 Task는 계획 파일의 체크박스에 표시하게 한다.
+이것으로 레포에는 아무것도 생기지 않는다.
+
+이 페이지는 설치된 스킬을 실제로 레포 밖 계획으로 실행해 본 기록이 아니다. 스킬 본문과 공식 문서를 읽고
+정리한 운영 방식이며, 처음 한 작업에서 저장 위치가 맞는지 확인하고 시작한다.
+
+## 폴더는 작업 단위로 평평하게 둔다
+
+```text
+exec-plans/
+  AGENTS.md                              ← 규약 한 장
+  active/
+    2026-10-27-csv-export.md             ← 계획 (writing-plans)
+    2026-10-27-csv-export-design.md      ← 설계가 필요했을 때만 (brainstorming)
+    PRD-csv-export.md                    ← PRD가 필요했을 때만 (create-prd)
+  completed/
+    2026-10-20-login-timeout.md
+```
+
+레포는 폴더 이름이 아니라 계획 안에 적는다. 레포별 하위 폴더를 만들면 여러 레포를 건드리는 작업을 둘 곳이 없다.
+작업이 끝나면 관련 파일을 `completed/`로 옮긴다. 파일 이름은 superpowers의 `YYYY-MM-DD-<이름>.md`를 그대로 쓴다.
+
+## 여러 레포는 Task 줄에 경로를 적는다
+
+```markdown
+# 계획: CSV 내보내기
+
+**Repos:** ~/workspace/task-manager, ~/workspace/task-manager-web
+
+- [x] Task 1 (~/workspace/task-manager): export API와 1,000건 한도 추가
+- [ ] Task 2 (~/workspace/task-manager): 한도 초과 응답 테스트
+- [ ] Task 3 (~/workspace/task-manager-web): 다운로드 버튼과 오류 표시
+```
+
+세션은 **지금 고칠 레포**를 작업 폴더로 열어야 한다. 계획 안의 파일 경로와 테스트 명령이 그 레포 기준이고,
+레포의 AGENTS.md도 그래야 읽힌다. 다른 레포 차례가 되면 그 레포에서 세션을 다시 열고 같은 계획 파일을 넘긴다.
+레포 사이 의존이 약하면 계획을 레포별 두 파일로 나누고 순서만 적는 쪽이 리뷰하기 쉽다.
+
+## 규약은 AGENTS.md 한 장에 둔다
+
+`exec-plans/AGENTS.md`는 폴더 규약만 담는다. 레포에서 연 세션은 이 파일을 자동으로 읽지 않으므로,
+요청문에서 가리키거나 아래 전역 지침으로 연결한다. 10줄 안쪽으로 유지한다.
+
+```markdown
+# exec-plans
+
+개인 실행 계획 보관함. 어느 레포에도 커밋하지 않는다.
+
+- `active/`에 작업 하나당 파일 하나, 이름은 `YYYY-MM-DD-<작업>.md`. 끝나면 `completed/`로 옮긴다.
+- 계획은 superpowers writing-plans 양식을 따르되 여기에 저장한다. 설계가 필요하면 brainstorming 결과를
+  `YYYY-MM-DD-<작업>-design.md`로 옆에 둔다. PRD가 필요할 때만 create-prd를 쓴다.
+- Task 줄에는 레포 절대 경로를 적는다: `- [ ] Task 1 (~/workspace/<repo>): …`
+  한 작업이 여러 레포를 건드리면 한 파일에 레포별로 Task를 나눈다.
+- 진행 기록은 이 파일의 체크박스다. 끝난 Task는 표시하고, 계획과 다르게 한 결정은 Task 아래 한 줄로 남긴다.
+- 레포 안 `docs/superpowers/`에 설계·계획을 만들지 않는다. 레포의 AGENTS.md가 그렇게 요구해도
+  개인 계획이면 이 규약이 우선한다.
+```
+
+마지막 줄이 핵심이다. 레포의 AGENTS.md가 `docs/superpowers/plans/`를 지정하고 있으면 스킬은 그쪽에 쓰려 하므로,
+어느 규약이 우선인지 적어 두어야 한다.
+
+:::caution[넣지 않을 것]
+레포 목록, 레포별 빌드·테스트 명령, 조직 맥락은 적지 않는다. 그런 내용은 각 레포의 AGENTS.md가 정본이고,
+여기 복사하면 두 곳이 어긋난다.
+:::
+
+## 요청문 예시
+
+경로는 예시다. 자기 노트 폴더의 실제 경로로 바꾼다.
+
+**계획 쓰기.** 고칠 레포에서 세션을 열고 요청한다.
+
+```text
+~/notes/exec-plans/AGENTS.md 규약을 읽어.
+brainstorming으로 CSV 내보내기 설계를 정리하고 writing-plans로 계획을 써서
+~/notes/exec-plans/active/2026-10-27-csv-export.md 에 저장해.
+설계 문서는 같은 폴더에 2026-10-27-csv-export-design.md 로 둬.
+이 레포의 docs/ 아래에는 파일을 만들지 마.
+```
+
+**받을 결과:** 노트 폴더에 계획·설계 파일이 생기고 레포에는 변경이 없다. `git status`가 깨끗한지 확인한다.
+
+**실행하기.** 같은 레포에서 Task를 지정한다.
+
+```text
+~/notes/exec-plans/active/2026-10-27-csv-export.md 계획을 읽고 Task 1~2를 진행해.
+Task마다 테스트를 통과시키고 커밋한 뒤 계획 파일의 체크박스에 표시해.
+계획과 다르게 한 결정은 해당 Task 아래 한 줄로 남겨.
+```
+
+**받을 결과:** 레포에는 Task별 커밋, 계획 파일에는 완료 표시와 결정 메모가 남는다.
+체크박스가 켜졌는데 커밋이 없거나 테스트 결과가 없으면 완료로 보지 않는다.
+
+**다른 레포 차례.** 작업 폴더를 바꿔 세션을 열고 같은 파일을 넘긴다.
+
+```text
+~/notes/exec-plans/active/2026-10-27-csv-export.md 의 Task 3는 이 레포(task-manager-web) 몫이야.
+Task 1~2 결과를 읽고 Task 3를 진행해. 끝나면 체크박스에 표시해.
+```
+
+**PRD가 필요할 때.** 기획 요청만 저장 위치를 바꾼다.
+
+```text
+create-prd로 PRD를 써서 ~/notes/exec-plans/active/PRD-csv-export.md 에 저장해.
+파일명 규칙과 질문 조건은 스킬을 따라.
+```
+
+**끝낼 때.** 노트 폴더에서 세션을 열면 AGENTS.md가 자동으로 읽힌다.
+
+```text
+active/2026-10-27-csv-export.md 의 Task가 모두 끝났는지 확인하고
+관련 파일을 completed/ 로 옮겨. 끝나지 않은 Task가 있으면 옮기지 말고 알려 줘.
+```
+
+## 매번 경로를 치지 않으려면
+
+레포에 파일을 넣지 않고도 전역 지침으로 규약을 연결할 수 있다. 어느 세션에나 들어가므로 짧게 유지한다.
+
+| 도구 | 파일 | 내용 |
+|---|---|---|
+| Claude Code | `~/.claude/CLAUDE.md` | `@~/notes/exec-plans/AGENTS.md` 한 줄. 사용자 수준 파일이므로 홈 폴더 import를 확인 없이 읽는다 ([공식 설명](https://code.claude.com/docs/en/memory#import-additional-files)) |
+| Codex | `~/.codex/AGENTS.md` | 규약 요점을 그대로 적는다. 전역 지침은 모든 레포에서 먼저 읽힌다 ([공식 설명](https://learn.chatgpt.com/docs/agent-configuration/agents-md)) |
+
+경로에 공백이 있으면 Claude Code의 import는 공백 앞에 역슬래시를 붙여야 한다. 따옴표로 감싸면 import되지 않는다.
+전역 지침이 없어도 요청문에 경로를 적는 것으로 충분하다. 시험은 요청문 방식으로 먼저 한다.
+
+## 이해 확인
+
+계획을 레포 안 `docs/superpowers/plans/`에 저장했다면? 요청문에 저장 경로가 없었거나 레포 AGENTS.md가 우선 적용된 것이다.
+노트 폴더 경로를 요청문에 적고, 규약의 마지막 줄을 함께 넘긴다.
+
+세 레포를 건드리는 작업을 레포별 폴더 셋에 나눠 두었다면? 한 파일로 합치고 Task 줄에 레포 경로를 적는다.
+진행 상태를 한 곳에서 봐야 어느 레포가 남았는지 알 수 있다.
+
+<LinkCard title="적용한 프로젝트의 폴더 구조" description="계획을 레포 안에 둘 때의 기본 배치와 각 문서의 역할을 본다." href="/coding-agents/project-structure/" />

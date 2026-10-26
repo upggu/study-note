@@ -40,7 +40,8 @@ export default {
         "project-structure",
         "agents-md",
         "design-and-plans",
-        "paseo-agents"
+        "paseo-agents",
+        "plans-outside-repo"
       ]
     }
   ],
@@ -84,7 +85,7 @@ export default {
       "label": "참조",
       "title": "필요할 때 찾는 부록",
       "tone": "mute",
-      "desc": "적용한 프로젝트의 폴더 구조·지침 로딩·문서 갱신과 수명·Paseo 연결 조건",
+      "desc": "적용한 프로젝트의 폴더 구조·지침 로딩·문서 갱신과 수명·Paseo 연결 조건·레포 밖 개인 계획",
       "items": [
         [
           "적용한 프로젝트의 폴더 구조",
@@ -101,6 +102,10 @@ export default {
         [
           "Paseo 프로필과 작업 폴더 연결",
           "/coding-agents/paseo-agents/"
+        ],
+        [
+          "계획을 레포 밖에 둘 때",
+          "/coding-agents/plans-outside-repo/"
         ]
       ]
     }

@@ -89,6 +89,12 @@ PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안
   [profiles](https://paseo.sh/docs/agent-profiles.md)를 2026-10-25에 다시 대조했다.
   프로필·When to use와 실제 작업 폴더 연결에 한정한다. 모델·추론 수준은 예시이고 공식 성능 추천이 아니다.
   provider 내부 하위 에이전트에 프로필이 자동 적용된다고 가정하지 않으며 결합 실행은 미실측이다.
+- 레포 밖 계획 부록(plans-outside-repo)은 2026-10-27에 writing-plans 7.0.1 원문의 "User preferences for plan
+  location override this default", [Claude Code memory](https://code.claude.com/docs/en/memory)의 `~/.claude/CLAUDE.md`와
+  `@` import(홈 경로·공백 처리), [Codex AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)의
+  전역 `~/.codex/AGENTS.md`를 대조했다. 개인 노트 폴더(`~/notes/exec-plans`)는 예시 경로이고, 작업 단위 평평한
+  파일·체크박스 진행 기록·레포에 파일을 넣지 않는 제약은 덱의 운영 선택이다. ledger·subagent-driven-development는
+  이 부록에서 쓰지 않으며, 레포 밖 계획으로 스킬을 실제 실행한 시험은 하지 않았다.
 
 설치본 직접 열람과 세션의 자동 발견·실행을 구분한다.
 이 개편에서 패키지 설치·새 세션의 전체 스킬 실행·Paseo 결합·독립 에이전트 이관 시험은 하지 않았다.
@@ -103,7 +109,7 @@ PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안
   설계는 `docs/superpowers/specs/2026-10-24-csv-export-design.md`,
   계획은 `docs/superpowers/plans/2026-10-24-csv-export.md`를 사용한다.
   처음 한도는 1,000건, 후속 변경은 5,000건이며 실제 제품 사실이 아니다.
-- 기본 가이드는 5쪽, 부록은 폴더 구조·지침 로딩·문서 역할과 수명·Paseo의 4쪽이다.
+- 기본 가이드는 5쪽, 부록은 폴더 구조·지침 로딩·문서 역할과 수명·Paseo·레포 밖 계획의 5쪽이다.
   project-structure는 가상 task-manager의 파일 위치·수명·읽기 연결을 보여 준다. 이 사이트 자체의 구조나
   모든 프로젝트에 강제할 새 배치 규칙으로 쓰지 않는다. 경로·역할의 정본은 기존 project-setup의 연결 규칙이다.
   현재 기술 문서·CSV 규약과 갱신 판단 예제는 design-and-plans에, 하위 지침 설명은 agents-md에 둔다.
