@@ -13,6 +13,7 @@ import TermIntro from '../../../components/docs/TermIntro.astro';
 - 사용하는 도구에 superpowers·pm-product-discovery·pm-execution 세 패키지를 설치한다.
 - 새 세션에서 실제 스킬 파일과 각 패키지의 버전을 확인한 뒤 프로젝트에 적용한다.
 - 파일 직접 열람, 세션의 자동 발견, 전체 작업 실행은 서로 다른 확인이다. 프로젝트 지침도 따로 확인한다.
+- 조직 정책으로 plugin 설치가 막히면 스킬 파일만 복사하고, 요청문에 쓸 스킬 이름을 명시한다.
 
 </Thesis>
 
@@ -55,6 +56,37 @@ claude plugin install pm-execution@pm-skills
 명령을 지원하지 않거나 설치에 실패하면 공식 설치 안내에서 도구 버전과 오류를 확인한다.
 나중에 사용을 중단하려면 도구의 플러그인 관리에서 해당 패키지를 비활성화하거나 제거하고 새 세션을 연다.
 프로젝트에 작성한 문서는 그대로 남는다.
+
+### 플러그인 설치가 정책으로 막힌 환경
+
+조직의 관리 설정이 허용 목록에 있는 marketplace만 열어 두면 위 Claude Code 명령은
+`is blocked by enterprise policy` 메시지와 함께 실패한다. 이 덱은 그런 환경에서
+**스킬 파일만 복사해 쓰고, 요청문에 스킬 이름을 명시**하는 방식을 기본으로 한다.
+플러그인과 같은 자동 발동을 다시 만들려고 hook이나 전역 지침을 덧붙이지 않는다.
+
+```bash
+git clone https://github.com/obra/superpowers.git /tmp/superpowers
+git clone https://github.com/phuryn/pm-skills.git /tmp/pm-skills
+cp -r /tmp/superpowers/skills/* ~/.claude/skills/
+cp -r /tmp/pm-skills/pm-execution/skills/* ~/.claude/skills/
+cp -r /tmp/pm-skills/pm-product-discovery/skills/* ~/.claude/skills/
+```
+
+`skills/` 아래 폴더만 복사한다. `.claude-plugin/plugin.json`이 든 폴더째로 넣으면
+plugin으로 분류되어 같은 정책에 다시 막힌다
+([공식 설명](https://code.claude.com/docs/en/plugins/org#keep-skills-directory-plugins-loading)).
+이렇게 둔 스킬은 `/brainstorming`·`/create-prd`처럼 접두사 없는 이름으로 불린다.
+
+달라지는 점은 두 가지다.
+
+- superpowers가 세션 시작마다 넣던 "해당 스킬을 먼저 불러라"는 안내가 없다. 스킬은 설명이 맞으면
+  스스로 발동하기도 하지만 확률이 낮아지므로, 이 덱의 요청문에서 **쓸 스킬 이름을 그때그때 말한다.**
+  스킬 본문이 `superpowers:brainstorming`처럼 옛 이름을 가리키면 접두사 없는 이름으로 읽으라고 알려 준다.
+- PM Skills의 `/discover`·`/write-prd` 같은 명령 파일은 복사 대상이 아니다. 개별 스킬 이름을 불러
+  같은 일을 맡긴다.
+
+`claude --plugin-dir`로 클론 폴더를 통째로 올리는 방법도 있지만, 이것을 막는 설정이 따로 있으므로
+이 덱은 기본 경로로 삼지 않는다. 설치 뒤 확인 절차는 아래와 같다.
 
 ## 새 세션에서 실제 스킬을 확인한다
 

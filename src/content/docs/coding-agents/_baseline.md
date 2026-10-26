@@ -68,6 +68,10 @@ PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안
   실행 방식 사전 지정은 계획 리뷰를 생략하지 않는다. 지속 문서 갱신은 덱의 연결 규칙이다.
   Claude Code 설치본은 7.0.0이며 brainstorming도 직접 읽었다. 7.0.1의 짧은 설계 문서 승인과
   7.0.0의 작은 변경 대화 설명 승인을 같은 동작으로 쓰지 않는다. 모든 스킬이 동일하다고 가정하지 않는다.
+- [Claude Code 조직 플러그인 관리](https://code.claude.com/docs/en/plugins/org)를 2026-10-26에 대조했다.
+  marketplace 허용 목록은 manifest 없는 일반 스킬 폴더에 적용되지 않는다. 정책으로 plugin 설치가 막힌
+  환경의 기본 경로는 스킬 파일 복사와 요청문의 스킬 이름 명시이며, hook·전역 지침으로 플러그인의
+  자동 발동을 재현하지 않는다. 이 경로의 실제 설치·발동은 시험하지 않았다.
 - [Codex plugin 명령](https://learn.chatgpt.com/docs/developer-commands#codex-plugin),
   [AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md),
   [Claude Code memory](https://code.claude.com/docs/en/memory).
