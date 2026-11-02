@@ -77,6 +77,14 @@ PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안
   `~/.agents/skills/`·심볼릭 링크 추적과 Pi의 로컬 패키지 설치(`pi install <경로>`, 복사 없이 로드)·
   `~/.agents/skills/` 지원을 공식 문서에서 확인했다. Pi가 심볼릭 링크를 따라가는지는 문서에 없다.
   이 경로의 실제 설치·발동은 어느 도구에서도 시험하지 않았다.
+- 설치·업데이트 안내는 2026-11-02에 다시 대조했다. Claude Code·Codex의 스킬 폴더 링크와
+  Pi의 로컬 패키지 등록을 공통 클론 절 안에 모았다. 스킬 폴더별 링크는 기존 파일 변경을 따라가지만
+  새 폴더의 링크 생성·삭제된 폴더의 링크 정리는 별도로 필요하다.
+  [Claude Code 업데이트](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated)의
+  marketplace별 자동 업데이트 기본값·개별 update·세션 반영을 확인했다.
+  Codex CLI 0.166.0의 plugin·add·marketplace upgrade 도움말을 공식 명령 문서와 대조했다.
+  Git marketplace 스냅샷 갱신과 설치본 교체를 구분하며, 자동 갱신 시점은 미확인이다.
+  문서의 수동 제거·재설치와 클론 갱신 명령은 실행하지 않았다.
 - [Codex plugin 명령](https://learn.chatgpt.com/docs/developer-commands#codex-plugin),
   [AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md),
   [Claude Code memory](https://code.claude.com/docs/en/memory).

@@ -4,7 +4,7 @@ description: "superpowers·pm-product-discovery·pm-execution을 사용하는 �
 aliases: [스킬 설치, pm-product-discovery, pm-execution, create-prd]
 ---
 
-import { LinkCard } from '@astrojs/starlight/components';
+import { LinkCard, Tabs, TabItem } from '@astrojs/starlight/components';
 import Thesis from '../../../components/docs/Thesis.astro';
 import TermIntro from '../../../components/docs/TermIntro.astro';
 
@@ -13,13 +13,14 @@ import TermIntro from '../../../components/docs/TermIntro.astro';
 - 사용하는 도구에 superpowers·pm-product-discovery·pm-execution 세 패키지를 설치한다.
 - 새 세션에서 실제 스킬 파일과 각 패키지의 버전을 확인한 뒤 프로젝트에 적용한다.
 - 파일 직접 열람, 세션의 자동 발견, 전체 작업 실행은 서로 다른 확인이다. 프로젝트 지침도 따로 확인한다.
-- 조직 정책으로 plugin 설치가 막히면 스킬 저장소를 클론해 스킬 폴더를 심볼릭 링크로 연결하고, 요청문에 쓸 스킬 이름을 명시한다.
+- plugin 설치가 막히거나 클론을 직접 관리하려면 같은 저장소를 Claude Code·Codex·Pi에 각 도구의 방식으로 연결한다.
+- 클론은 Git으로, 플러그인은 설치한 도구에서 갱신한다. 갱신 뒤 새 세션에서 실제 파일과 버전을 다시 확인한다.
 
 </Thesis>
 
 스킬 이름을 말했어도 실제 파일을 읽지 못하면 AI가 일반 지식으로 답할 수 있다.
 이 페이지는 **기획과 개발을 맡길 준비가 됐는지 어떻게 확인하는가**에 답한다.
-Codex CLI 또는 Claude Code가 설치·인증돼 있고 터미널 명령을 실행할 수 있는 환경에서 시작한다.
+Codex CLI·Claude Code·Pi 중 사용할 도구가 설치·인증돼 있고 터미널 명령을 실행할 수 있는 환경에서 시작한다.
 
 <TermIntro terms={[["스킬", "Skill", "AI가 작업할 때 불러 읽는 지침 파일. 제품 질문이나 개발 절차를 안내한다."], ["플러그인", "Plugin", "관련 스킬과 기능을 함께 설치하는 묶음. pm-execution 안에 create-prd가 있다."]]} />
 
@@ -57,59 +58,158 @@ claude plugin install pm-execution@pm-skills
 나중에 사용을 중단하려면 도구의 플러그인 관리에서 해당 패키지를 비활성화하거나 제거하고 새 세션을 연다.
 프로젝트에 작성한 문서는 그대로 남는다.
 
-### 플러그인 설치가 정책으로 막힌 환경
+## 플러그인 설치가 정책으로 막힌 환경
 
-조직의 관리 설정이 허용 목록에 있는 marketplace만 열어 두면 위 Claude Code 명령은
-`is blocked by enterprise policy` 메시지와 함께 실패한다. 이 덱은 그런 환경에서
-**스킬 저장소를 한 곳에 클론하고 스킬 폴더를 심볼릭 링크로 연결해 쓰며, 요청문에 스킬 이름을 명시**하는
-방식을 기본으로 한다. 플러그인과 같은 자동 발동을 다시 만들려고 hook이나 전역 지침을 덧붙이지 않는다.
+플러그인 설치가 막혔거나 저장소를 직접 관리하고 싶다면 **공통 클론을 만든 뒤 사용하는 도구에 연결**한다.
+아래는 로컬 스킬 사용과 저장소 접근이 허용된 환경의 방법이다. 예를 들어 Claude Code의
+marketplace 허용 목록 때문에 `is blocked by enterprise policy`가 나오는 경우에도 일반 스킬 폴더는
+[플러그인과 별도로 로드된다](https://code.claude.com/docs/en/plugins/org#keep-skills-directory-plugins-loading).
+Codex·Pi에서도 같은 클론을 쓸 수 있다.
+
+### 저장소를 한 번 클론한다
 
 ```bash
+mkdir -p ~/workspace
 git clone https://github.com/obra/superpowers.git ~/workspace/superpowers
 git clone https://github.com/phuryn/pm-skills.git ~/workspace/pm-skills
+```
+
+이미 클론했다면 다시 만들지 않는다. `~/workspace`는 예시 위치다.
+여러 도구를 쓰더라도 클론은 공유하고, 아래 연결만 도구마다 한다.
+
+### 사용하는 도구에 클론을 연결한다
+
+<Tabs>
+<TabItem label="Claude Code">
+
+스킬 폴더를 하나씩 `~/.claude/skills/`에 연결한다.
+Claude Code는 [심볼릭 링크를 따라 대상 SKILL.md를 읽는다](https://code.claude.com/docs/en/skills#choose-where-skills-load).
+
+```bash
 mkdir -p ~/.claude/skills
 ln -s ~/workspace/superpowers/skills/* ~/.claude/skills/
 ln -s ~/workspace/pm-skills/pm-execution/skills/* ~/.claude/skills/
 ln -s ~/workspace/pm-skills/pm-product-discovery/skills/* ~/.claude/skills/
 ```
 
-복사 대신 링크를 쓰는 이유는 갱신이다. 클론 폴더에서 `git pull`만 하면 링크된 스킬이 함께 바뀌고,
-같은 클론을 아래의 다른 도구에서도 쓴다. Claude Code는 `~/.claude/skills/<스킬 이름>` 자리의
-심볼릭 링크를 따라가 대상 폴더의 SKILL.md를 읽는다
-([공식 설명](https://code.claude.com/docs/en/skills#choose-where-skills-load)).
-`~/workspace`는 예시 위치이며 클론을 두는 폴더는 자유다. 다만 클론을 옮기거나 지우면 링크가 깨진다.
+`.claude-plugin/plugin.json`이 든 저장소 폴더째로 연결하면 plugin으로 분류되어 같은 정책에 다시 막힌다.
+`claude --plugin-dir`도 별도의 차단 설정이 있어 이 덱의 기본 경로로 삼지 않는다.
+스킬은 `/brainstorming`·`/create-prd`처럼 접두사 없는 이름으로 불린다.
 
-`skills/` 아래 스킬 폴더를 하나씩 링크한다. `.claude-plugin/plugin.json`이 든 저장소 폴더째로 링크하면
-plugin으로 분류되어 같은 정책에 다시 막힌다
-([공식 설명](https://code.claude.com/docs/en/plugins/org#keep-skills-directory-plugins-loading)).
-이렇게 둔 스킬은 `/brainstorming`·`/create-prd`처럼 접두사 없는 이름으로 불린다.
-갱신한 뒤에는 새 세션을 열어 바뀐 스킬이 읽히는지 아래 절차로 확인한다.
+</TabItem>
+<TabItem label="Codex">
 
-달라지는 점은 두 가지다.
+Codex는 [사용자 스킬을 `~/.agents/skills/`에서 찾고 심볼릭 링크를 따라간다](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills).
 
-- superpowers가 세션 시작마다 넣던 "해당 스킬을 먼저 불러라"는 안내가 없다. 스킬은 설명이 맞으면
-  스스로 발동하기도 하지만 확률이 낮아지므로, 이 덱의 요청문에서 **쓸 스킬 이름을 그때그때 말한다.**
-  스킬 본문이 `superpowers:brainstorming`처럼 옛 이름을 가리키면 접두사 없는 이름으로 읽으라고 알려 준다.
-- PM Skills의 `/discover`·`/write-prd` 같은 명령 파일은 링크 대상이 아니다. 개별 스킬 이름을 불러
-  같은 일을 맡긴다.
+```bash
+mkdir -p ~/.agents/skills
+ln -s ~/workspace/superpowers/skills/* ~/.agents/skills/
+ln -s ~/workspace/pm-skills/pm-execution/skills/* ~/.agents/skills/
+ln -s ~/workspace/pm-skills/pm-product-discovery/skills/* ~/.agents/skills/
+```
 
-`claude --plugin-dir`로 클론 폴더를 통째로 올리는 방법도 있지만, 이것을 막는 설정이 따로 있으므로
-이 덱은 기본 경로로 삼지 않는다.
+</TabItem>
+<TabItem label="Pi">
 
-### 같은 클론을 Codex·Pi에서 쓰기
+Pi는 [로컬 패키지 경로를 등록하면 복사 없이 그 자리에서 로드한다](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/packages.md).
+`skills/`가 들어 있는 패키지 폴더를 지정한다.
 
-Codex와 [Pi](https://github.com/badlogic/pi-mono)는 plugin 설치가 막혔는지와 상관없이 같은 클론을 읽을 수 있다.
+```bash
+pi install ~/workspace/superpowers
+pi install ~/workspace/pm-skills/pm-execution
+pi install ~/workspace/pm-skills/pm-product-discovery
+```
 
-- **Codex**는 사용자 스킬을 `~/.agents/skills/`에서 찾고 심볼릭 링크를 따라간다
-  ([공식 설명](https://learn.chatgpt.com/docs/build-skills#where-codex-loads-local-skills)).
-  위 `ln -s` 명령의 목적지만 `~/.agents/skills/`로 바꿔 한 번 더 실행한다.
-- **Pi**는 저장소를 패키지로 바로 읽는다. `pi install ~/workspace/superpowers`는 클론을 복사하지 않고
-  그 자리에서 로드하며, superpowers의 세션 시작 안내 extension도 함께 켜진다
-  ([공식 Pi 설치 안내](https://github.com/obra/superpowers#pi), [Pi 패키지 문서](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/packages.md)).
-  PM Skills는 `pi install ~/workspace/pm-skills/pm-execution`처럼 `skills/` 폴더가 있는 패키지 폴더를 지정한다.
-  Pi도 `~/.agents/skills/`를 읽지만 심볼릭 링크를 따라가는지는 공식 문서에 없으므로, 이 덱은 패키지 설치를 기본으로 둔다.
+superpowers는 스킬과 함께 세션 시작 안내를 넣는 extension도 로드한다
+([공식 Pi 설치 안내](https://github.com/obra/superpowers#pi)).
+이 덱은 Pi에서 로컬 패키지 등록을 사용한다.
 
-이 경로의 실제 설치와 발동은 이 덱이 시험하지 않았다. 설치 뒤 확인 절차는 아래와 같다.
+</TabItem>
+</Tabs>
+
+심볼릭 링크 명령은 최초 연결용이다. 같은 이름이 이미 있으면 기존 파일·링크의 출처부터 확인한다.
+클론을 옮기거나 지우면 연결이 깨진다. 플러그인 설치본과 클론을 동시에 로드하지 않도록
+기존 설치본을 비활성화하거나 제거한 뒤 전환한다. 사용을 중단할 때는 만든 링크만 제거하거나
+Pi의 `pi remove <등록한 경로>`로 등록을 해제한다.
+
+### 클론으로 쓸 때 요청하는 방법
+
+Claude Code·Codex에 스킬 폴더만 연결하면 superpowers의 세션 시작 안내는 함께 설치되지 않는다.
+자동 발동에만 기대지 않고 **요청문에서 쓸 스킬 이름을 말한다.** 플러그인의 자동 발동을 재현하려고
+hook이나 전역 지침을 덧붙이지 않는다. 스킬 본문이 `superpowers:brainstorming`을 가리키지만
+그 이름을 찾지 못하면 설치된 `brainstorming`을 읽으라고 알려 준다.
+Pi의 superpowers 패키지는 세션 시작 안내 extension을 포함한다는 점이 다르다.
+
+PM Skills의 `/discover`·`/write-prd` 같은 명령 파일은 위 연결로 설치되지 않는다.
+대신 개별 스킬 이름과 맡길 일을 자연어로 요청한다.
+이 경로의 실제 설치·발동은 이 덱이 시험하지 않았다. 연결 후에는 아래의 새 세션 확인을 한다.
+
+## 설치 방식에 맞춰 업데이트한다
+
+CLI 자체를 업그레이드하는 것과 스킬 내용을 갱신하는 것은 별개다.
+**직접 클론한 원본과 도구가 관리하는 플러그인 설치본은 서로 다른 위치**이므로,
+다른 곳의 클론을 pull해도 플러그인 설치본이 바뀌지는 않는다.
+
+### 클론을 연결한 경우
+
+위에서 만든 클론을 갱신한다. Claude Code·Codex의 링크와 Pi의 로컬 패키지 등록은 같은 파일을 계속 가리킨다.
+
+```bash
+git -C ~/workspace/superpowers pull --ff-only
+git -C ~/workspace/pm-skills pull --ff-only
+```
+
+기존 스킬 파일의 수정은 바로 연결되지만, **새 스킬 폴더가 생기면 Claude Code·Codex에는 그 폴더의 링크를 추가**해야 한다.
+삭제·이름 변경된 폴더의 오래된 링크도 정리한다. Pi는 등록한 패키지의 스킬을 다시 로드한다.
+`--ff-only`가 실패하면 클론의 로컬 변경·브랜치 상태를 먼저 확인한다.
+
+### Claude Code 플러그인으로 설치한 경우
+
+[공식 업데이트 안내](https://code.claude.com/docs/en/plugins/install#keep-plugins-updated)에 따르면
+자동 업데이트는 marketplace별 설정이다. `claude-plugins-official`은 기본으로 켜져 있고,
+직접 추가한 `pm-skills` 같은 외부 marketplace는 기본으로 꺼져 있다.
+`/plugin` → **Marketplaces** → 해당 marketplace → **Enable auto-update**에서 켤 수 있다.
+조직의 관리 설정이 있다면 실제 적용값을 확인한다.
+
+지금 갱신하려면 터미널에서 설치된 플러그인을 지정한다.
+
+```bash
+claude plugin update superpowers@claude-plugins-official
+claude plugin update pm-product-discovery@pm-skills
+claude plugin update pm-execution@pm-skills
+```
+
+`claude plugin marketplace update`를 이름 없이 실행하면 목록만 갱신하고 설치본은 그대로 둔다.
+자동 업데이트도 디스크의 파일을 바꾸는 것이므로 실행 중인 세션에는 `/reload-plugins`를 적용하거나 새 세션을 연다.
+
+### Codex CLI 플러그인으로 설치한 경우
+
+[공식 CLI 문서](https://learn.chatgpt.com/docs/developer-commands#codex-plugin)와 Codex CLI 0.166.0의
+도움말에서 확인한 명령은 `add`·`list`·`remove`와 `marketplace upgrade`다.
+`codex plugin update`라는 명령은 없으며, `marketplace upgrade`는 **등록한 Git marketplace의 스냅샷 갱신**이다.
+이를 모든 설치 플러그인의 업데이트 완료로 해석하지 않는다.
+
+```bash
+codex plugin marketplace upgrade pm-skills
+codex plugin list --json
+```
+
+목록의 설치본과 제공 버전을 확인한다. 새 버전으로 설치본을 교체해야 할 때는 제거 후 다시 설치하는
+명시적인 방법을 쓸 수 있다. 다음은 `pm-execution`의 예다.
+
+```bash
+codex plugin remove pm-execution@pm-skills
+codex plugin add pm-execution@pm-skills
+```
+
+`pm-product-discovery@pm-skills`도 같은 방식이다. 원격 카탈로그에서 받은
+`superpowers@openai-curated-remote`는 Git marketplace 갱신 대상과 구분하고, 교체가 필요하면
+그 식별자로 제거·재설치한다. 제공되는 버전은 해당 카탈로그 기준이므로 원본 Git 저장소의 최신 커밋과 같다고 가정하지 않는다.
+Codex 플러그인의 자동 갱신 시점은 확인한 공식 문서만으로 보장할 수 없어 여기서는 수동 확인·교체 방법을 안내한다.
+실제 제거·재설치 시험은 하지 않았다.
+
+어느 방식이든 갱신 뒤에는 **새 세션에서 읽는 SKILL.md의 경로·버전을 다시 확인**한다.
+진행 중인 작업이 있다면 먼저 인계 기록을 남긴다. 스킬 갱신이 프로젝트의 기존 PRD·설계·계획을 자동으로 고치지는 않는다.
 
 ## 새 세션에서 실제 스킬을 확인한다
 
