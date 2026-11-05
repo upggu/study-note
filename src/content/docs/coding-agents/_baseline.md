@@ -13,7 +13,9 @@ AI에게 요청하고, 결과에서 제품 결정·승인할 설계·검증 증�
 제품 아이디어·해결 방향 탐색과 가정·실험 설계는 PM Skills의 pm-product-discovery,
 PRD 작성과 리뷰는 pm-execution의 create-prd, 개발 설계·계획·구현·검증은 superpowers가 맡는다.
 기본 설치는 세 패키지이지만 확정 요구의 개발·버그 수정에 제품 탐색을 반복하지 않는다.
-두 도구를 모두 쓰도록 요구하지 않는다. API 개발·모델 성능 비교·스킬별 상세 절차는 범위 밖이다.
+두 도구를 모두 쓰도록 요구하지 않는다. API 개발·모델 성능 비교·스킬의 전체 템플릿 복제는 범위 밖이다.
+Superpowers 작업 흐름 부록은 스킬 자체의 설계·계획·두 실행 방식·기본 폴더·ledger·하위 에이전트 조율만 설명한다.
+Paseo 부록은 daemon·MCP/native 도구 연결·에이전트 생성과 보고·프로필·workspace 및 Superpowers 조합을 설명한다.
 
 ## 최소 연결 원칙
 
@@ -95,7 +97,7 @@ PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안
 - Paseo 부록은 [orchestration](https://paseo.sh/docs/orchestration.md)·
   [workflows](https://paseo.sh/docs/orchestration-workflows.md)·
   [profiles](https://paseo.sh/docs/agent-profiles.md)를 2026-10-25에 다시 대조했다.
-  프로필·When to use와 실제 작업 폴더 연결에 한정한다. 모델·추론 수준은 예시이고 공식 성능 추천이 아니다.
+  당시 확인 범위는 프로필·When to use와 실제 작업 폴더 연결이다. 모델·추론 수준은 예시이고 공식 성능 추천이 아니다.
   provider 내부 하위 에이전트에 프로필이 자동 적용된다고 가정하지 않으며 결합 실행은 미실측이다.
 - 레포 밖 계획 부록(plans-outside-repo)은 2026-10-27에 writing-plans 7.0.1 원문의 "User preferences for plan
   location override this default", [Claude Code memory](https://code.claude.com/docs/en/memory)의 `~/.claude/CLAUDE.md`와
@@ -117,7 +119,7 @@ PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안
   설계는 `docs/superpowers/specs/2026-10-24-csv-export-design.md`,
   계획은 `docs/superpowers/plans/2026-10-24-csv-export.md`를 사용한다.
   처음 한도는 1,000건, 후속 변경은 5,000건이며 실제 제품 사실이 아니다.
-- 기본 가이드는 5쪽, 부록은 폴더 구조·지침 로딩·문서 역할과 수명·Paseo·레포 밖 계획의 5쪽이다.
+- 기본 가이드는 5쪽, 부록은 폴더 구조·지침 로딩·문서 역할과 수명·Superpowers 작업 흐름·Paseo·레포 밖 계획의 6쪽이다.
   project-structure는 가상 task-manager의 파일 위치·수명·읽기 연결을 보여 준다. 이 사이트 자체의 구조나
   모든 프로젝트에 강제할 새 배치 규칙으로 쓰지 않는다. 경로·역할의 정본은 기존 project-setup의 연결 규칙이다.
   현재 기술 문서·CSV 규약과 갱신 판단 예제는 design-and-plans에, 하위 지침 설명은 agents-md에 둔다.
@@ -126,3 +128,20 @@ PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안
   현재 내부 링크는 실제 페이지·절을 가리키게 유지한다.
   삭제·통합한 페이지의 옛 주소·절 ID 호환을 위한 리다이렉트나 빈 이동 안내는 유지하지 않는다.
 - 이 학습 사이트 자체의 실행 정책은 루트 AGENTS.md가 정한다. 덱의 예시 프로젝트 정책과 혼용하지 않는다.
+
+## Superpowers 작업 흐름 부록의 근거
+
+2026-11-05에 GitHub 기본 브랜치의 커밋 `22f0b463e7a5e579904dd6211a520321035526f7`에서
+README·brainstorming·writing-plans·executing-plans·subagent-driven-development와 final-review 참조를 확인했다.
+본문은 버전 비교보다 작업 흐름에 집중하고 공식 main 원문으로 연결한다. 설치본 7.0.1과 비교해
+질문·설계 진행 방식의 조정, 보조 스크립트를 실제 작업 폴더에서 절대 경로로 호출하는 설명 변경을 확인했다.
+Paseo의 llms.txt·orchestration·orchestration-workflows·agent-profiles 공개 원문과 로컬 paseo 스킬도 대조했다.
+Paseo를 SDD의 위임 수단으로 연결하는 요청은 운영 예이며 결합 실행·독립 리뷰를 실제 시험하지 않았다.
+
+2026-11-05 후속 개편에서 superpowers-workflow는 Superpowers 자체 동작으로 범위를 좁혔다.
+완료한 spec의 동결·현재 문서 이관은 스킬의 필수 정책으로 설명하지 않는다.
+Paseo 조합 설명은 paseo-agents로 옮기고 두 페이지를 불릿·정적 D2 중심으로 구성했다.
+Paseo의 공개 mcp·providers·orchestration 문서와 GitHub 커밋
+`b920243c74e25ec06e523019fb154f78ea9870be`의 mcp-server.ts·runtime-mcp-config.ts를 대조했다.
+MCP 서버 실행과 도구 주입 설정, provider별 MCP/native 경로를 구별한다.
+소스 확인은 실행 중인 로컬 daemon의 실제 설정·통신을 실측했다는 뜻이 아니다.

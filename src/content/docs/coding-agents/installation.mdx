@@ -69,12 +69,14 @@ Codex·Pi에서도 같은 클론을 쓸 수 있다.
 ### 저장소를 한 번 클론한다
 
 ```bash
-mkdir -p ~/workspace
-git clone https://github.com/obra/superpowers.git ~/workspace/superpowers
-git clone https://github.com/phuryn/pm-skills.git ~/workspace/pm-skills
+mkdir -p ~/ws-base
+cd ~/ws-base
+git clone https://github.com/obra/superpowers.git
+git clone https://github.com/phuryn/pm-skills.git
 ```
 
-이미 클론했다면 다시 만들지 않는다. `~/workspace`는 예시 위치다.
+`~/ws-base`는 공통 저장소를 모아 두는 예시 위치다. 이 폴더에서 클론하면
+`superpowers/`와 `pm-skills/`가 만들어진다. 이미 클론했다면 다시 만들지 않는다.
 여러 도구를 쓰더라도 클론은 공유하고, 아래 연결만 도구마다 한다.
 
 ### 사용하는 도구에 클론을 연결한다
@@ -87,9 +89,9 @@ Claude Code는 [심볼릭 링크를 따라 대상 SKILL.md를 읽는다](https:/
 
 ```bash
 mkdir -p ~/.claude/skills
-ln -s ~/workspace/superpowers/skills/* ~/.claude/skills/
-ln -s ~/workspace/pm-skills/pm-execution/skills/* ~/.claude/skills/
-ln -s ~/workspace/pm-skills/pm-product-discovery/skills/* ~/.claude/skills/
+ln -s ~/ws-base/superpowers/skills/* ~/.claude/skills/
+ln -s ~/ws-base/pm-skills/pm-execution/skills/* ~/.claude/skills/
+ln -s ~/ws-base/pm-skills/pm-product-discovery/skills/* ~/.claude/skills/
 ```
 
 `.claude-plugin/plugin.json`이 든 저장소 폴더째로 연결하면 plugin으로 분류되어 같은 정책에 다시 막힌다.
@@ -103,9 +105,9 @@ Codex는 [사용자 스킬을 `~/.agents/skills/`에서 찾고 심볼릭 링크�
 
 ```bash
 mkdir -p ~/.agents/skills
-ln -s ~/workspace/superpowers/skills/* ~/.agents/skills/
-ln -s ~/workspace/pm-skills/pm-execution/skills/* ~/.agents/skills/
-ln -s ~/workspace/pm-skills/pm-product-discovery/skills/* ~/.agents/skills/
+ln -s ~/ws-base/superpowers/skills/* ~/.agents/skills/
+ln -s ~/ws-base/pm-skills/pm-execution/skills/* ~/.agents/skills/
+ln -s ~/ws-base/pm-skills/pm-product-discovery/skills/* ~/.agents/skills/
 ```
 
 </TabItem>
@@ -115,9 +117,9 @@ Pi는 [로컬 패키지 경로를 등록하면 복사 없이 그 자리에서 �
 `skills/`가 들어 있는 패키지 폴더를 지정한다.
 
 ```bash
-pi install ~/workspace/superpowers
-pi install ~/workspace/pm-skills/pm-execution
-pi install ~/workspace/pm-skills/pm-product-discovery
+pi install ~/ws-base/superpowers
+pi install ~/ws-base/pm-skills/pm-execution
+pi install ~/ws-base/pm-skills/pm-product-discovery
 ```
 
 superpowers는 스킬과 함께 세션 시작 안내를 넣는 extension도 로드한다
@@ -155,8 +157,8 @@ CLI 자체를 업그레이드하는 것과 스킬 내용을 갱신하는 것은 
 위에서 만든 클론을 갱신한다. Claude Code·Codex의 링크와 Pi의 로컬 패키지 등록은 같은 파일을 계속 가리킨다.
 
 ```bash
-git -C ~/workspace/superpowers pull --ff-only
-git -C ~/workspace/pm-skills pull --ff-only
+git -C ~/ws-base/superpowers pull --ff-only
+git -C ~/ws-base/pm-skills pull --ff-only
 ```
 
 기존 스킬 파일의 수정은 바로 연결되지만, **새 스킬 폴더가 생기면 Claude Code·Codex에는 그 폴더의 링크를 추가**해야 한다.

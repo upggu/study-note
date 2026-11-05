@@ -40,6 +40,7 @@ export default {
         "project-structure",
         "agents-md",
         "design-and-plans",
+        "superpowers-workflow",
         "paseo-agents",
         "plans-outside-repo"
       ]
@@ -85,7 +86,7 @@ export default {
       "label": "참조",
       "title": "필요할 때 찾는 부록",
       "tone": "mute",
-      "desc": "적용한 프로젝트의 폴더 구조·지침 로딩·문서 갱신과 수명·Paseo 연결 조건·레포 밖 개인 계획",
+      "desc": "적용한 프로젝트의 폴더 구조·지침 로딩·문서 갱신과 수명·Superpowers 흐름·Paseo MCP와 에이전트 조율·레포 밖 개인 계획",
       "items": [
         [
           "적용한 프로젝트의 폴더 구조",
@@ -100,7 +101,11 @@ export default {
           "/coding-agents/design-and-plans/"
         ],
         [
-          "Paseo 프로필과 작업 폴더 연결",
+          "Superpowers의 설계·계획·실행 흐름",
+          "/coding-agents/superpowers-workflow/"
+        ],
+        [
+          "Paseo의 MCP와 에이전트 조율",
           "/coding-agents/paseo-agents/"
         ],
         [

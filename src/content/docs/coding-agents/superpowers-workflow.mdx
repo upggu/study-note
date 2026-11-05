@@ -1,0 +1,173 @@
+---
+title: "Superpowers의 설계·계획·실행 흐름"
+description: "Superpowers 자체의 설계·계획·두 실행 방식, 기본 폴더 구조와 spec·ledger의 생애주기를 이해한다"
+aliases: [Superpowers, brainstorming, writing-plans, writing-docs, executing-plans, subagent-driven-development, SDD]
+---
+
+import { FileTree } from '@astrojs/starlight/components';
+import Thesis from '../../../components/docs/Thesis.astro';
+import TermIntro from '../../../components/docs/TermIntro.astro';
+
+<Thesis>
+
+- Superpowers는 에이전트가 읽고 따르는 개발 절차다. 설계 → 계획 → 구현·검증 → 리뷰로 이어진다.
+- spec은 무엇을 만들지 정하는 기준, plan은 구현할 작업, ledger는 실제 진행 기록이다.
+- 실행은 직접 구현하는 executing-plans와 작업별 구현자·리뷰어를 쓰는 subagent-driven-development로 나뉜다.
+- spec은 계획 작성 후에도 구현·리뷰의 기준이다. 완료 후 최신화·동결·폐기 정책은 스킬이 따로 정하지 않는다.
+
+</Thesis>
+
+- **중심 질문:** Superpowers만 사용하면 어떤 절차를 거치고 어떤 파일이 생기는가?
+- **읽을 곳:** 설계에서 실행 방식이 갈라지는 지점, plan과 별도로 저장되는 ledger.
+- 아래는 [Superpowers 공식 원문](https://github.com/obra/superpowers)의 동작이다. 프로젝트에서 추가한 문서 관리 규칙은 포함하지 않는다.
+
+<TermIntro terms={[
+  ["spec", "Design specification", "목적·범위·접근법·제약을 합의한 설계 문서."],
+  ["ledger", "", "끝낸 작업·검증·판단을 파일에 남긴 임시 진행 기록."],
+  ["SDD", "Subagent-driven development", "주 에이전트가 작업별 구현자와 리뷰어를 조율하는 실행 방식."]
+]} />
+
+## 전체 흐름
+
+```d2 sketch=false title="설계와 계획을 거친 뒤 직접 실행 또는 SDD로 갈라진다"
+direction: down
+classes: {
+  key: { style: { fill: "#dbeafe"; stroke: "#2563eb"; font-color: "#1e3a8a" } }
+  ok: { style: { fill: "#dcfce7"; stroke: "#16a34a"; font-color: "#14532d" } }
+}
+design: "brainstorming\n설계 작성·승인"
+plan: "writing-plans\n계획 작성·검토" { class: key; style.stroke-width: 4 }
+inline: "executing-plans\n주 에이전트가 구현"
+sdd: "subagent-driven-development\n작업별 구현자·리뷰어"
+review: "전체 변경 리뷰" { class: ok }
+finish: "finishing-a-development-branch\n병합·PR·유지·폐기 선택"
+design -> plan
+plan -> inline: 직접 실행 선택
+plan -> sdd: 작업별 위임 선택
+inline -> review
+sdd -> review
+review -> finish
+```
+
+- **실행 주체:** 코딩 에이전트가 `SKILL.md`를 읽고 편집·명령 실행·위임 도구를 사용한다.
+- **적용 범위:** 여러 단계가 필요한 개발의 흐름이다. 명확한 작은 변경까지 항상 모든 문서를 만들지는 않는다.
+- **승인:** 설계를 승인한 뒤 계획을 작성한다. 실행 방식을 미리 골라도 계획 검토는 남는다.
+- **보조 스킬:** 구현에는 TDD, 실패 원인 분석에는 systematic-debugging, 완료 판단에는 verification-before-completion을 연결한다.
+- **마무리:** 검증 후 변경을 어떻게 통합할지 정한다. 테스트 통과가 자동 병합·푸시를 뜻하지 않는다.
+
+## 설계와 계획의 차이
+
+### brainstorming: 무엇을 왜 만들 것인가
+
+- 기존 코드·문서를 읽고, 결과를 바꾸는 미결정 사항을 질문한다.
+- 접근법의 장단점·선택 이유·범위·제약을 설계로 정리한다.
+- 작은 변경은 짧은 설계, 프로젝트 규모는 상세 설계를 쓴다.
+- 프로젝트 규모에서는 별도 에이전트의 구현 가능성 검토를 거친다. 위임 도구가 없으면 자체 검토한다.
+- 검토 결과를 반영하고 사용자 승인을 받는다.
+- 예: **“필터에 맞는 전체 항목을 CSV로 내보내되 최대 1,000건으로 제한한다.”**
+
+근거: [brainstorming](https://github.com/obra/superpowers/blob/main/skills/brainstorming/SKILL.md).
+
+### writing-plans: 어떻게 구현하고 확인할 것인가
+
+- 계획 작성 스킬 이름은 **`writing-plans`**다. `writing-docs`가 아니다.
+- spec을 검증 가능한 작업으로 나누고, 변경할 파일·입출력·제약·검증 명령·기대 결과를 적는다.
+- 코드 작업은 실패하는 테스트 → 최소 구현 → 테스트 통과 흐름으로 구성한다.
+- plan의 `Spec:`에 설계 경로를 넣고, 설계 요구가 작업에 빠짐없이 반영됐는지 점검한다.
+- 예: **“화면에는 10건씩 보여도, 필터 결과가 25건이면 CSV에 25건이 나오는지 검증한다.”**
+
+근거: [writing-plans](https://github.com/obra/superpowers/blob/main/skills/writing-plans/SKILL.md).
+
+## 기본 폴더 구조
+
+<FileTree>
+
+- 프로젝트/
+  - docs/
+    - superpowers/
+      - specs/
+        - **2026-11-05-csv-export-design.md** 설계
+      - plans/
+        - **2026-11-05-csv-export.md** 구현 계획
+  - .superpowers/
+    - sdd/
+      - .gitignore 임시 기록의 Git 제외 설정
+      - 2026-11-05-csv-export/ 계획별 임시 폴더
+        - plan-path 연결된 계획의 실제 경로
+        - **progress.md** ledger
+        - … 작업 지시·보고서·리뷰 자료
+
+</FileTree>
+
+- **설계·계획:** `docs/superpowers/`가 기본 저장 위치다. 사용자 지정 경로가 있으면 그 선호를 따른다.
+- **ledger:** plan 문서 밑에 덧붙이지 않는다. 별도 `progress.md`에 작성한다.
+- **생성 시점:** 필요한 단계에서 생성한다. 설치만으로 위 파일이 모두 생기지는 않는다.
+- **생성 주체:** 실행 스킬의 보조 스크립트가 임시 폴더·작업 자료를 준비하고, 에이전트가 진행·판단을 기록한다.
+- **실행 위치:** 보조 스크립트는 절대 경로로 호출하되 현재 작업 중인 코드 폴더에서 실행한다.
+
+근거: [임시 폴더 생성 코드](https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/scripts/sdd-workspace), [실행 준비](https://github.com/obra/superpowers/blob/main/skills/executing-plans/SKILL.md#setup).
+
+## 두 실행 방식
+
+| 구분 | executing-plans | subagent-driven-development |
+|---|---|---|
+| 구현 | 주 에이전트가 직접 수행 | 작업마다 새 구현자에게 위임 |
+| 작업별 확인 | 테스트·기대 결과 대조 | 구현자 검증 + 별도 리뷰어의 요구·품질 검토 |
+| 최종 리뷰 | 위임 도구가 있으면 새 리뷰어, 없으면 자체 리뷰와 한계 보고 | 별도 리뷰어가 전체 변경 검토 |
+| 비용·맥락 | 같은 맥락을 재사용 | 작업마다 새 맥락을 준비하는 비용 |
+| 진행 기록 | 계획별 ledger | 같은 형식의 계획별 ledger |
+
+- 두 방식 모두 **현재 세션**에서 실행한다. `executing-plans`가 새 세션 전용인 것은 아니다.
+- 작업별 독립 리뷰가 필요하거나 긴 계획이면 SDD를 선호한다.
+- 직접 실행을 선택했거나 위임 도구가 없으면 `executing-plans`를 사용한다.
+- 둘 다 작업이 충분히 분리된 계획을 전제로 한다. 강하게 얽힌 작업은 경계부터 점검한다.
+
+근거: [executing-plans](https://github.com/obra/superpowers/blob/main/skills/executing-plans/SKILL.md), [SDD](https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/SKILL.md).
+
+## SDD의 하위 에이전트 관리
+
+주 에이전트가 작업 하나의 구현·리뷰를 마친 뒤 다음 작업으로 넘어가는 흐름을 본다.
+
+```d2 pad=40 title="주 에이전트가 작업 지시와 리뷰를 배정하고 수정 후 진행을 기록한다"
+shape: sequence_diagram
+lead: 주 에이전트
+worker: 구현자
+reviewer: 작업 리뷰어
+lead -> worker: "① brief·제약·보고 위치"
+worker -> lead: "② 구현·검증 결과" { style.stroke-dash: 3 }
+lead -> reviewer: "③ brief·보고서·diff"
+reviewer -> lead: "④ 요구 충족·품질 판정" { style.stroke-dash: 3 }
+lead -> worker: "⑤ 필요한 수정"
+worker -> lead: 수정 결과 { style.stroke-dash: 3 }
+lead -> reviewer: 수정 범위 재검토
+reviewer -> lead: 재검토 결과 { style.stroke-dash: 3 }
+lead.record: "완료 근거를 ledger에 기록\n다음 작업에 새 구현자 배정"
+```
+
+- **주 에이전트:** 전체 계획·의존성·질문·수정·진행 기록을 관리한다.
+- **구현자:** 해당 작업의 brief를 읽고 구현·검증·자체 리뷰 후 보고한다. 전체 대화 이력을 그대로 넘기지 않는다.
+- **작업 리뷰어:** 같은 brief·구현 보고·diff로 요구 충족과 코드 품질을 모두 검토한다.
+- **수정 반복:** 스킬의 fix-loop 한도를 따른다. 해결하지 못한 지적은 판단과 이유를 남기며 조용히 버리지 않는다.
+- **위임 제한:** 구현자가 다시 하위 에이전트나 리뷰어를 만들지 않는다. 주 에이전트가 중복 위임을 막는다.
+- **동시 실행:** SDD는 여러 구현자를 병렬 실행하지 않는다. 독립적인 조사 병렬화와 구별한다.
+
+근거: [SDD 작업 순환](https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/SKILL.md#the-task-loop).
+
+## spec과 ledger의 생애주기
+
+| 시점 | spec | plan | ledger |
+|---|---|---|---|
+| 설계 | 작성·검토·수정·승인 | 아직 없음 | 아직 없음 |
+| 계획 | 작업 분해의 근거 | 작성·리뷰 | 아직 없음 |
+| 구현 | 계획 충돌의 판단 기준 | 수행할 작업·검증 기준 | 완료·검증·판단 기록 |
+| 최종 리뷰 | 요구·제약 대조 | 누락·편차 대조 | 남은 지적·판단 확인 |
+| 마무리 | 삭제 지침 없음 | 삭제 지침 없음 | 정리 조건 충족 후 해당 임시 폴더 삭제 |
+
+- **spec은 계획 작성으로 역할이 끝나지 않는다.** 실행자가 spec과 plan을 함께 읽으며, 계획이 충돌하면 spec을 기준으로 판단한다.
+- **spec은 모든 상황을 열거하지 않는다.** 리뷰에서는 명시되지 않은 입력도 합리적인 사용자 기대에 비춰 확인한다.
+- **ledger는 복구 기록이다.** 대화 압축·실행자 교체 후 ledger와 Git 이력을 확인해 끝낸 작업을 반복하지 않는다.
+- **마무리 전:** ledger의 판단·남은 문제를 결과 보고에 남긴다. 최종 리뷰와 수정 완료 조건을 충족하면 해당 계획의 임시 폴더를 정리한다.
+- **완료 이후:** 설계는 기본적으로 Git에 커밋해 남긴다. spec을 최신화할지, 동결할지, 별도 문서로 옮길지는 Superpowers가 장기 정책으로 정하지 않는다.
+- **인계 주의:** 임시 폴더는 Git 제외이므로 다른 clone·worktree에 자동 전달되지 않는다.
+
+근거: [실행·최종 리뷰](https://github.com/obra/superpowers/blob/main/skills/executing-plans/SKILL.md), [SDD 마무리](https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/references/final-review.md).
