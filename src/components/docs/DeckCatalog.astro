@@ -31,7 +31,8 @@ import { withBase } from '../../utils/site-path.mjs';
       slug      덱 slug — 수정일을 계산할 콘텐츠 경로
       href      덱 index 링크 ('/starlight/')
       icon      Starlight 아이콘 이름 — `_deck.mjs`에서 파생된 topic과 같은 값
-      title     덱 이름
+      title     덱 이름 — `_deck.mjs`의 `label`로, 헤더·topic 사이드바의 덱 이름과 같다
+                랜딩은 옆에 `(slug)`를 붙여 URL 경로를 함께 보이고, 이름 검색은 slug에도 걸린다
       desc      한 줄 소개 (평문 — 서식 처리 없음)
       tags      해석된 {id, label} — 카드·행의 라벨이자 필터 대상
   facets: 필터 칩 — sections의 태그와 같은 어휘에 전체 기준 count가 붙은 것
@@ -179,12 +180,12 @@ const tagIds = (deck: { tags: Tag[] }) => deck.tags.map((tag) => tag.id).join(' 
         </header>
         <div class="catalog__grid">
           {section.decks.map((deck) => (
-            <a class="deck" href={withBase(deck.href, import.meta.env.BASE_URL)} data-name={deck.title} data-tags={tagIds(deck)}>
+            <a class="deck" href={withBase(deck.href, import.meta.env.BASE_URL)} data-name={`${deck.title} ${deck.slug}`} data-tags={tagIds(deck)}>
               <span class="deck__icon" aria-hidden="true">
                 <Icon name={deck.icon as any} size="1.25rem" />
               </span>
               <span class="deck__body">
-                <span class="deck__name">{deck.title}</span>
+                <span class="deck__name">{deck.title} <span class="deck__slug">({deck.slug})</span></span>
                 <span class="deck__blurb">{deck.desc}</span>
                 {deck.updatedAt && (
                   <span class="deck__updated">
@@ -238,7 +239,7 @@ const tagIds = (deck: { tags: Tag[] }) => deck.tags.map((tag) => tag.id).join(' 
       <tbody data-deck-rows>
         {tableDecks.map((deck, index) => (
           <tr
-            data-name={deck.title}
+            data-name={`${deck.title} ${deck.slug}`}
             data-category={deck.category}
             data-updated={deck.updatedAt?.getTime() ?? ''}
             data-original-index={index}
@@ -250,7 +251,7 @@ const tagIds = (deck: { tags: Tag[] }) => deck.tags.map((tag) => tag.id).join(' 
                   <Icon name={deck.icon as any} size="1rem" />
                 </span>
                 <span class="catalog-table__body">
-                  <span class="catalog-table__name">{deck.title}</span>
+                  <span class="catalog-table__name">{deck.title} <span class="catalog-table__slug">({deck.slug})</span></span>
                   <span class="catalog-table__blurb">{deck.desc}</span>
                   {/* 새 열이 아니라 덱 셀의 셋째 줄이다 — 열을 늘리면 min-width가 커져
                       이미 잘리는 blurb가 더 잘린다. */}
@@ -899,6 +900,14 @@ const tagIds = (deck: { tags: Tag[] }) => deck.tags.map((tag) => tag.id).join(' 
   }
   .deck:hover .deck__name {
     color: var(--dc-line);
+  }
+  /* slug는 이름 뒤의 보조 정보다 — 가늘고 흐리게, hover에도 색을 바꾸지 않는다 */
+  .deck__slug,
+  .catalog-table__slug {
+    font-family: var(--__sl-font-mono);
+    font-size: 0.85em;
+    font-weight: 400;
+    color: var(--sl-color-gray-3);
   }
   .deck__blurb {
     font-size: 0.85rem;

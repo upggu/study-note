@@ -62,8 +62,13 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
 - `sitePaths()`를 D2보다 먼저 등록한다. remark가 Markdown 링크·이미지·참조 정의와
   MDX의 `LinkCard`·`LinkButton` 및 기본 링크·이미지·미디어 문자열 속성을 처리한다.
   코드 블록·인라인 코드·JavaScript 표현식은 변환하지 않는다.
+- 본문의 외부 링크(`http(s)://`이고 host가 `site`와 다른 것)는 `src/integrations/external-links.mjs`의
+  rehype 플러그인이 `target="_blank" rel="noopener noreferrer"`를 붙인다(2026-11-10). 컴포넌트 출력은
+  rehype를 거치지 않으므로 `LinkCard` 등에는 작성자가 직접 준다. `ExternalLink` 컴포넌트는 기존 3곳만 남았다.
 - `DeckCatalog`·`DeckMap`·`SourceFigure`·`ExternalLink`는 자신의 props를 렌더할 때 처리한다.
   MDX 변환기는 이 컴포넌트들의 props를 건드리지 않는다. 새 컴포넌트도 소유 지점을 하나만 둔다.
+  `href={...}`·`src={...}` 표현식을 쓰는 새 컴포넌트는 `withBase(url, import.meta.env.BASE_URL)`을
+  렌더 지점에서 한 번 적용한다. 코드 예제·외부 URL·`#절-주소`에는 붙이지 않는다.
 - Starlight 기본 사이트 제목·사이드바·검색은 Starlight가, D2 생성 이미지 경로는 `src/integrations/d2.mjs`가 base를 처리한다.
   생성된 결과 전체에 prefix를 다시 붙이는 후처리는 하지 않는다.
 - topics 0.8은 root locale의 topic 링크에 base를 붙이지 않으며, 덱 경계에서 게시 URL과 content id를
@@ -85,6 +90,9 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
   정적 참조는 지연 로드 `<img>`, 링크·설명·선/노드 애니메이션은 렌더 결과로 감지해 자동 인라인으로 출력한다.
   `src/components/docs/D2Figure.astro`는 `MarkdownContent`에서 한 번 로드하는 공용 런타임이며 MDX에서 직접 쓰지 않는다.
   `D2Figure`는 확대 버튼과 dialog, 호버·키보드·터치의 설명 표시, 선택적인 선 재생·정지를 맡는다.
+  본문 그림은 크기 상한 없는 미리보기다(2026-11-10). integration이 `<d2-figure>`에 `--d2-w`/`--d2-h`를 달고
+  `D2Figure` CSS가 폭 100%·높이 80vh 안에 비율대로 줄인다. 글자 13px·`pad` 24·ELK 간격 축소 기본값은
+  `src/integrations/d2.mjs`의 `defaultD2Options`·`elkSpacing`이다.
   확대 dialog는 원본 크기 기준 1–400% 슬라이더·± 버튼·100%·전체 보기를 제공한다. 배율 변경은
   보고 있던 중심을 유지하고, 그림이 넘치면 스크롤·방향키로 이동한다. 미니맵은 넘칠 때만 나타나며
   현재 영역 표시·클릭·드래그·방향키 이동과 숨기기를 지원한다. 인라인 그림의 미니맵은 정지된 SVG를
@@ -105,8 +113,8 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
 - 단계 탐색은 D2 `steps`/`scenarios` 원본의 보드를 `target`으로 따로 그려 Starlight `Tabs`로 선택한다.
   `src/d2/request-response.d2`와 Starlight D2 페이지가 예제다. 상태는 탭 밖 표에도 남긴다.
   공식 `animateInterval` 자동 교차를 단계 선택·상태 설명의 자동 대체로 취급하지 않는다.
-- integration은 렌더된 SVG를 후처리한다(`softenEdgeLabels`): 엣지 라벨의 mask를 떼고 라벨 상자에
-  반투명 배경을 넣어 선이 라벨 뒤로 보이게 한다. d2는 `src/d2/`를 cwd로 실행하며, 로고는
+- integration은 렌더된 SVG의 배경색만 후처리한다(`matchPageBackground`). 엣지 라벨 뒤 선을 비치게 하던
+  `softenEdgeLabels`는 취소선처럼 보여 2026-11-10에 삭제했고 D2 기본(라벨이 선을 가림)으로 둔다. d2는 `src/d2/`를 cwd로 실행하며, 로고는
   `src/d2/icons/`에 두고 펜스에서 `icon: icons/<이름>.svg`로 쓴다(규칙은 d2-authoring.md).
 - 2026-10-13까지는 [astro-d2](https://astro-d2.vercel.app/)를 썼다. 이 레포가 쓰는 기능은 펜스 속성 몇 개와
   `<img>`/inline 출력뿐인데, astro-d2 0.14는 쓰지 않는 D2.js WebAssembly(`@d2lang/d2`, 92MB)를 빌드마다
@@ -150,6 +158,9 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
 - **폰트**: Pretendard Variable 셀프호스팅. `customCss`의 **dynamic subset** CSS가 핵심이다
   — 한글 폰트는 웨이트당 수 MB라, 쓰인 글자의 조각만 내려받는 이 방식이 아니면 못 쓴다
 - **본문 폭**: `--sl-content-width: 55rem` (기본 45rem은 다이어그램·표 위주 문서에 좁다)
+- **컴포넌트 스타일**: `src/components/`는 `layout/`(Starlight override), `docs/`(공용 문서 컴포넌트),
+  `demos/`(개념 데모)로 나뉜다. 새 컴포넌트의 스타일은 자체 `<style>`에 캡슐화하고 다크 모드는
+  `[data-theme='dark']`로 대응한다. 사이트 전역 조정만 `src/styles/custom.css`에 둔다.
 
 ## 검색 결과의 덱 이름 표시
 
@@ -201,11 +212,13 @@ Starlight가 페이지의 마지막 업데이트를 구할 때 쓰는
 버튼으로 정렬하며, 한 번 더 누르면 오름차순·내림차순을 바꾼다. 수정일이 없는 덱은
 정렬 방향과 관계없이 마지막에 둔다. 48rem 이하 화면에서는 카테고리 열을 접어
 가로 스크롤 없이 덱·최근 수정일 열만 남긴다.
+덱 이름은 `_deck.mjs`의 `label` 하나로, 헤더의 현재 덱 이름·topic 사이드바와 같은 글자를 쓰고
+옆에 `(slug)`를 붙여 URL 경로를 함께 보인다.
 
 ## 랜딩 이름 검색과 태그 필터
 
 덱 이름 검색창은 입력할 때마다 목록을 좁힌다. 대소문자를 구분하지 않고, 공백으로 나눈
-검색어가 모두 이름에 포함된 덱을 찾는다. 검색어와 선택한 태그는 함께 적용되며 카드·테이블
+검색어가 모두 이름 또는 slug에 포함된 덱을 찾는다. 검색어와 선택한 태그는 함께 적용되며 카드·테이블
 전환과 정렬 후에도 유지된다. 검색 결과에 맞춰 태그별 개수도 갱신한다. 검색어는 `q`, 태그는
 `tags` URL 매개변수로 복원하고, ‘필터 지우기’는 둘 다 초기화한다.
 

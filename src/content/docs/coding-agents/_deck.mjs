@@ -2,7 +2,6 @@ export default {
   "navOrder": 2100,
   "catalogOrder": 2100,
   "label": "Claude Code · Codex",
-  "title": "AI에게 기획부터 개발까지 맡기기",
   "icon": "pencil",
   "aliases": [
     "코딩 에이전트",
@@ -28,6 +27,7 @@ export default {
       "label": "기본 가이드",
       "pages": [
         "installation",
+        "skill-stack-guide",
         "project-setup",
         "product-requirements",
         "workflow",
@@ -52,7 +52,14 @@ export default {
       "href": "/coding-agents/installation/",
       "title": "스킬 설치와 준비 확인",
       "tone": "key",
-      "desc": "사용하는 도구에 설치하고 실제 스킬·지침 로딩을 확인한다"
+      "desc": "공통 클론을 도구에 연결하고 실제 스킬·지침 로딩을 확인한다"
+    },
+    {
+      "label": "지도",
+      "href": "/coding-agents/skill-stack-guide/",
+      "title": "네 스킬 묶음을 함께 쓰는 법",
+      "tone": "zone",
+      "desc": "단계마다 부를 스킬 이름·요청 첫 문장·멈출 지점과 주의할 점을 한 장으로 본다"
     },
     {
       "label": "적용",

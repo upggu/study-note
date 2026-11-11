@@ -3,7 +3,6 @@ export default {
 	"navOrder": 2300,
 	"catalogOrder": 2300,
 	"label": "AI 트렌드",
-	"title": "AI 트렌드 노트",
 	"icon": "star",
 	"aliases": [
 		"AI Trend",

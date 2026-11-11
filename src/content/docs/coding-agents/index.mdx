@@ -64,7 +64,8 @@ superpowers도 요구를 질문하고 설계를 다듬지만, 이 덱은 제품 
 
 | 지금 할 일 | 열 페이지 | 확인할 결과 |
 |---|---|---|
-| 처음 사용한다 | [스킬 설치와 준비 확인](/coding-agents/installation/) | 세 패키지의 실제 스킬·버전과 프로젝트 지침을 확인한다 |
+| 처음 사용한다 | [스킬 설치와 준비 확인](/coding-agents/installation/) | 공통 클론을 도구에 연결하고 실제 스킬·지침 로딩을 확인한다 |
+| 어느 단계에 무엇을 부를지 한눈에 본다 | [네 스킬 묶음을 함께 쓰는 법](/coding-agents/skill-stack-guide/) | 단계별 스킬 이름·요청 첫 문장·멈출 지점과 주의할 점 |
 | 프로젝트에 연결한다 | [프로젝트에 적용하기](/coding-agents/project-setup/) | 기존 문서·명령·지침을 연결한다. 신규 세팅은 요청에 따라 문서 또는 실행 환경까지 준비한다 |
 | 아이디어를 탐색하거나 PRD를 정리한다 | [제품 기획과 PRD 리뷰 맡기기](/coding-agents/product-requirements/) | 후보·가정·근거를 확인하고 제품 문제·첫 범위·성과 기준을 정한다 |
 | 합의한 요구를 개발한다 | [개발 맡기고 결과 확인하기](/coding-agents/workflow/) | 설계·계획을 검토하고 구현·검증 결과를 확인한다 |
@@ -78,20 +79,18 @@ superpowers도 요구를 질문하고 설계를 다듬지만, 이 덱은 제품 
 스킬 사이의 자동 동기화 기능을 뜻하지 않는다.
 제품 목적·범위·정책 결정과 스킬이 요청하는 설계·계획 검토·승인은 사용자가 맡는다.
 
-2026-10-25에 Codex superpowers 7.0.1,
-Claude Code superpowers 7.0.0, 양쪽 pm-execution 2.2.0 설치본을 읽었다.
-pm-product-discovery 2.2.0은 marketplace 체크아웃 원문을 확인했다.
+스킬 원문은 superpowers 7.0.x와 pm-skills 2.2.0을 읽었다. 설치는 클론 하나를 모든 도구에 연결하므로 도구별 버전 차이는 없다.
 이 열람을 새 세션의 자동 발견·전체 실행 성공으로 해석하지 않는다.
 
 ## 필요할 때 찾는 부록
 
-기본 가이드는 위의 5쪽이다. 아래 부록은 프로젝트 구조나 지침 로딩, 문서 갱신, 선택한 실행 도구의 연결을 확인할 때 연다.
+기본 가이드는 위의 6쪽이다. 아래 부록은 프로젝트 구조나 지침 로딩, 문서 갱신, 선택한 실행 도구의 연결을 확인할 때 연다.
 
 - [적용한 프로젝트의 폴더 구조](/coding-agents/project-structure/): 지침·현재 문서·작업 기록의 위치와 수명, AI가 연결해 읽는 경로를 트리로 본다.
 - [AGENTS.md와 지침 로딩](/coding-agents/agents-md/): 실제 명령·읽을 경로를 연결하고 기존 import와 하위 지침의 적용을 확인한다.
 - [문서 역할과 수명](/coding-agents/design-and-plans/): CSV 예제로 현재 문서에 남길 내용과 갱신·정리 시점을 판단한다.
 - [Superpowers의 설계·계획·실행 흐름](/coding-agents/superpowers-workflow/): Superpowers 자체의 설계·계획·실행, 기본 폴더 구조와 임시 ledger를 이해한다.
-- [Paseo의 MCP와 에이전트 조율](/coding-agents/paseo-agents/): daemon·MCP 연결과 하위 에이전트의 생성·보고, 프로필·작업 폴더 연결을 이해한다.
+- [Paseo의 MCP와 에이전트 조율](/coding-agents/paseo-agents/): daemon·MCP 연결과 하위 에이전트의 생성·보고를 이해하고, Superpowers 절차의 구현자·리뷰어를 Paseo로 띄우는 설정을 확인한다.
 
 ## 구성
 

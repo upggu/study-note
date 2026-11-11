@@ -2,7 +2,6 @@ export default {
   "navOrder": 1300,
   "catalogOrder": 2000,
   "label": "Starlight",
-  "title": "Starlight",
   "icon": "star",
   "aliases": [
     "Astro Starlight",

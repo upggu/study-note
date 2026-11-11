@@ -50,7 +50,7 @@ const reviewedAt = data.reviewedAt?.toLocaleDateString('ko-KR', {
 	introduced && (
 		<p class="content-introduced">
 			<strong>소개 시점: <time datetime={introduced.month}>{introducedLabel}</time></strong>
-			{' · '}<a href={introduced.source}>{introduced.event}</a>
+			{' · '}<a href={introduced.source} target="_blank" rel="noopener noreferrer">{introduced.event}</a>
 		</p>
 	)
 }

@@ -33,7 +33,6 @@ export const deckConfigSchema = z
 		navOrder: z.number().int().nonnegative(),
 		catalogOrder: z.number().int().nonnegative(),
 		label: z.string().min(1),
-		title: z.string().min(1),
 		icon: z.string().min(1),
 		aliases: z.array(z.string().min(1)).default([]),
 		description: z.string().min(1),

@@ -31,7 +31,9 @@ PRD는 create-prd의 파일명·내용 구성을 유지하고 저장 폴더만 �
 작은 변경의 파일 생략, 기능 수에 따른 문서 분리, 요구 ID 도입, ledger Git 추적,
 다른 도구의 추가 리뷰를 덱의 필수 규칙으로 만들지 않는다.
 공유 지침의 정본은 AGENTS.md로 연결하되 기존 도구별 연결 파일을 일괄 삭제하지 않는다.
-사전 지정된 실행 선호는 subagent-driven-development이며 하위 에이전트 도구가 없으면 executing-plans다.
+사전 지정된 실행 선호는 executing-plans다. 계획이 길거나 작업별 리뷰 관문이 필요할 때만 subagent-driven-development를
+요청에 명시한다. 모델은 설계·계획 대화와 최종 리뷰어가 가장 큰 모델, 실행 세션이 중간 모델이며, 실행 세션은 계획을 만든
+대화와 따로 연다. 이 선택은 덱의 운영 선택이고 어느 쪽이 기본인지 스킬은 정하지 않는다.
 이미 정한 선호로 인계하고 공통 연결 규칙으로 강제 복제하지 않는다. 실제 적용 조건과 리뷰는 설치 스킬을 따른다.
 하위 에이전트 도구가 없어 native 실행으로 최종 self-review를 수행하면 그 사실과 한계를 보고한다.
 실제 도구가 없는데 위임이나 독립 리뷰를 완료했다고 쓰지 않는다.
@@ -87,6 +89,12 @@ PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안
   Codex CLI 0.166.0의 plugin·add·marketplace upgrade 도움말을 공식 명령 문서와 대조했다.
   Git marketplace 스냅샷 갱신과 설치본 교체를 구분하며, 자동 갱신 시점은 미확인이다.
   문서의 수동 제거·재설치와 클론 갱신 명령은 실행하지 않았다.
+- 2026-11-09: installation 페이지에서 Claude Code·Codex의 plugin 설치·갱신 절을 지우고 클론 + 스킬 폴더별 링크를
+  유일한 설치 방식으로 삼았다. 조직 정책 유무와 무관하게 같은 절차를 쓰기 위해서다. plugin 설치본은 전환 전에 제거한다고
+  안내한다(`claude plugin uninstall`·`codex plugin remove`, 도움말로 명령 이름 확인). 갱신은 `git pull`과
+  `ln -sfn` 재연결 루프·끊긴 링크 `find`로 정리했고, 루프는 임시 폴더에서 동작만 확인했다. 클론 superpowers는 7.0.2였다.
+  같은 날 덱 전체를 대조해 Codex 7.0.1·Claude Code 7.0.0처럼 도구별 설치본 버전을 나누던 문장을 "클론의 스킬 원문"으로
+  통일하고, 예시 설계·계획 날짜를 2026-10-24로 맞췄다(superpowers-workflow·paseo-agents에 2026-11-05가 섞여 있었다).
 - [Codex plugin 명령](https://learn.chatgpt.com/docs/developer-commands#codex-plugin),
   [AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md),
   [Claude Code memory](https://code.claude.com/docs/en/memory).
@@ -98,7 +106,19 @@ PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안
   [workflows](https://paseo.sh/docs/orchestration-workflows.md)·
   [profiles](https://paseo.sh/docs/agent-profiles.md)를 2026-10-25에 다시 대조했다.
   당시 확인 범위는 프로필·When to use와 실제 작업 폴더 연결이다. 모델·추론 수준은 예시이고 공식 성능 추천이 아니다.
+  2026-11-09에 Superpowers 조합 절을 보강하며 [MCP reference](https://paseo.sh/docs/mcp.md)의 provider별 `paseoTools` 정책과
+  [skills](https://paseo.sh/docs/skills.md)의 번들 스킬 넷을 추가로 대조했다. SDD 역할과 프로필의 대응, 번들 스킬과 superpowers 스킬의
+  분담은 운영 예이며 실측하지 않았다. 다른 덱으로의 링크는 두지 않는다.
+  조합의 기준은 "중간 모델 실행 세션이 executing-plans로 직접 구현하고 최종 리뷰어만 Paseo 하위 에이전트로 띄운다"이고,
+  SDD를 고르면 구현자·리뷰어도 Paseo로 띄운다. 번들 스킬은 `/paseo`만 설치한다. 실행 전체를 worker에게 넘기는 방식은 선택지로만 적는다.
   provider 내부 하위 에이전트에 프로필이 자동 적용된다고 가정하지 않으며 결합 실행은 미실측이다.
+- 2026-11-10: 기본 실행 선호를 subagent-driven-development에서 executing-plans로 뒤집었다. SDD는 작업마다 구현자·리뷰어가
+  코드베이스를 다시 읽어 시간·토큰이 작업 수에 비례해 늘기 때문이다. 클론 7.0.2(커밋 `22f0b463`)의 executing-plans 원문
+  "runs well on a mid-tier session model… the most capable model earns its cost in the final review"와 SDD의 Model Selection·
+  batching 참조, 두 스킬의 Setup(압축·ledger)을 대조했다. 작업 경계에서 새 세션을 자동으로 여는 기능은 두 스킬과 Paseo
+  공개 문서 어디에도 없어 "계획을 한 세션 분량으로 나눈다"를 덱의 권장으로 적었다. 같은 날 paseo-agents의 SDD 작업 리뷰어를
+  "둘"에서 "요구·품질을 함께 보는 하나"로 바로잡았고(7.0.2 task-reviewer-prompt 하나), 프로필을 Executor·Reviewer·Implementer
+  셋으로 늘렸다. 모델 배치·세 프로필 운영은 실측하지 않았다.
 - 레포 밖 계획 부록(plans-outside-repo)은 2026-10-27에 writing-plans 7.0.1 원문의 "User preferences for plan
   location override this default", [Claude Code memory](https://code.claude.com/docs/en/memory)의 `~/.claude/CLAUDE.md`와
   `@` import(홈 경로·공백 처리), [Codex AGENTS.md](https://learn.chatgpt.com/docs/agent-configuration/agents-md)의
@@ -119,7 +139,8 @@ PRD 리뷰만 요청하면 판단에 필요한 누락과 줄일 내용을 제안
   설계는 `docs/superpowers/specs/2026-10-24-csv-export-design.md`,
   계획은 `docs/superpowers/plans/2026-10-24-csv-export.md`를 사용한다.
   처음 한도는 1,000건, 후속 변경은 5,000건이며 실제 제품 사실이 아니다.
-- 기본 가이드는 5쪽, 부록은 폴더 구조·지침 로딩·문서 역할과 수명·Superpowers 작업 흐름·Paseo·레포 밖 계획의 6쪽이다.
+- 기본 가이드는 6쪽(설치, 네 묶음 지도, 적용, 기획, 개발, 갱신), 부록은 폴더 구조·지침 로딩·문서 역할과 수명·Superpowers 작업 흐름·Paseo·레포 밖 계획의 6쪽이다.
+  "네 스킬 묶음을 함께 쓰는 법"(2026-11-09)은 지도 역할만 한다. 요청문 전문·설정값·판정 기준을 다시 적지 않고 각 단계 페이지로 링크한다.
   project-structure는 가상 task-manager의 파일 위치·수명·읽기 연결을 보여 준다. 이 사이트 자체의 구조나
   모든 프로젝트에 강제할 새 배치 규칙으로 쓰지 않는다. 경로·역할의 정본은 기존 project-setup의 연결 규칙이다.
   현재 기술 문서·CSV 규약과 갱신 판단 예제는 design-and-plans에, 하위 지침 설명은 agents-md에 둔다.

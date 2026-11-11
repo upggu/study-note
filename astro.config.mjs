@@ -10,6 +10,7 @@ import { topics } from './src/data/decks.mjs';
 import { site, base } from './src/config/site.mjs';
 import sitePaths from './src/integrations/site-paths.mjs';
 import { rehypeD2Inline } from './src/integrations/d2-inline.mjs';
+import { rehypeExternalLinks } from './src/integrations/external-links.mjs';
 
 export default defineConfig({
 	// 대표 주소와 게시 경로는 src/config/site.mjs가 소유한다. canonical 링크와 sitemap의 기준이므로
@@ -19,7 +20,8 @@ export default defineConfig({
 	// unified 프로세서를 명시한다. site-paths integration이 unified의 remarkPlugins 배열에 직접 끼어들기
 	// 때문이며, Astro 7 기본값인 Sätteri로 가려면 그 integration을 mdastPlugins 방식으로 먼저 이식해야 한다.
 	// rehypeD2Inline은 inline D2(```d2 inline=true)의 <style>이 MDX에서 접히지 않게 지킨다 — 파일 머리 주석 참고.
-	markdown: { processor: unified({ rehypePlugins: [rehypeD2Inline] }) },
+	// rehypeExternalLinks는 본문의 외부 링크에 target=_blank를 붙인다. 작성자는 일반 마크다운 링크만 쓴다.
+	markdown: { processor: unified({ rehypePlugins: [rehypeD2Inline, [rehypeExternalLinks, { site }]] }) },
 	integrations: [
 		sitePaths(),
 		// 자체 D2 integration(src/integrations/d2.mjs). site-paths 뒤, starlight 앞에 둔다 —

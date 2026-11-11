@@ -14,7 +14,7 @@ import TermIntro from '../../../components/docs/TermIntro.astro';
 - Paseo에는 MCP 서버가 있다. provider에 따라 에이전트에는 MCP 또는 native 도구 인터페이스로 기능을 제공한다.
 - MCP 서버 실행과 에이전트에 도구 제공은 별도 설정이다. 서버가 켜져 있어도 에이전트가 도구를 받았다고 볼 수 없다.
 - 주 에이전트가 도구로 구현자·리뷰어를 만들고 결과를 받는다. 프로필은 설정, workspace는 작업 위치, 부모 관계는 위임 관계다.
-- Superpowers와 함께 쓰면 스킬이 작업 절차를, Paseo가 에이전트 생성·대화·작업 폴더 연결을 맡는다.
+- Superpowers와 함께 쓸 때 절차는 Superpowers가, 에이전트를 띄우는 자리는 Paseo가 맡는다. 기본은 중간 모델 실행 세션이 executing-plans로 직접 구현하고 최종 리뷰어만 Paseo 하위 에이전트로 띄우며, 번들 스킬은 `/paseo` 하나만 둔다.
 
 </Thesis>
 
@@ -96,7 +96,7 @@ native -> service
 
 `create_agent`의 응답은 작업 완료가 아니라 **새 에이전트의 식별자**다. 완료 알림은 나중에 도착한다.
 
-```d2 pad=40 title="주 에이전트는 생성 응답을 먼저 받고 작업 종료 후 완료 알림을 받는다"
+```d2 title="주 에이전트는 생성 응답을 먼저 받고 작업 종료 후 완료 알림을 받는다"
 shape: sequence_diagram
 lead: 주 에이전트
 paseo: Paseo
@@ -179,36 +179,94 @@ paseo -> worker: 기존 세션에 전달
 
 ## Superpowers와 조합한다
 
-- **Superpowers:** 설계·계획·작업 배정·리뷰·ledger 절차. [자체 동작 설명](/coding-agents/superpowers-workflow/)을 따른다.
-- **Paseo:** 그 절차에 필요한 구현자·리뷰어의 생성·설정·대화·작업 폴더 연결.
-- **주 에이전트:** 스킬을 읽고 Paseo 도구를 호출한다. Paseo가 spec·plan을 해석해 자동 실행하는 것은 아니다.
+- **역할 분담은 한 문장이다.** 절차는 Superpowers가, 에이전트를 띄우는 자리는 Paseo가 맡는다. 설계·계획·작업 배정·리뷰·ledger는 [Superpowers 자체 동작](/coding-agents/superpowers-workflow/)을 그대로 따른다.
+- **기본은 executing-plans다.** 설계·계획을 만든 큰 모델 대화와 따로, 중간 모델의 실행 세션을 열어 계획을 직접 구현한다. 끝에 최종 리뷰어 하나만 **Paseo 하위 에이전트**로 띄운다.
+- **SDD를 고르면 주 대화가 오케스트레이터다.** 작업마다 구현자·리뷰어를 Paseo 하위 에이전트로 띄운다. 언제 SDD를 고르는지는 [두 실행 방식](/coding-agents/superpowers-workflow/#두-실행-방식)에 있다.
+- **계획 문서와 ledger를 갱신하는 주체는 Superpowers 절차를 따르는 에이전트다.** 구현자·리뷰어는 자기 작업 하나를 처리하고 보고할 뿐이다. 절차 없이 "구현해 줘"만 넘기면 코드는 바뀌어도 계획 체크·ledger는 그대로다.
 - **폴더 구분:** Paseo workspace는 코드 작업 공간, `.superpowers/sdd/`는 그 코드 폴더 안의 임시 기록 공간이다.
+
+### Paseo에서 켜 두는 것
+
+이 조합에 필요한 Paseo 설정은 넷이고, 번들 스킬은 하나만 쓴다.
+
+| 설정 | 값 | 이유 |
+|---|---|---|
+| Settings → 해당 host → Agents → **Enable Paseo tools** | 켠다 | 실행 세션이 `create_agent`로 리뷰어·구현자를 띄우려면 필수다. 꺼져 있으면 두 실행 스킬 모두 provider 내부 하위 에이전트로 돌아간다 |
+| provider 정책(`agents.providers.<id>.paseoTools`) | lead는 전체, worker는 `create_agent`·`send_agent_prompt`·`kill_agent` 제거 | 구현자가 다시 에이전트를 만드는 연쇄를 끊는다. 설정 모양은 [MCP reference](https://paseo.sh/docs/mcp.md#limit-paseo-tools-by-provider) |
+| Agent profiles | **Executor**(lead provider · 중간 모델 · 편집 허용), **Reviewer**(lead provider · 큰 모델 · 읽기 전용), SDD를 쓸 때만 **Implementer**(worker provider · 작은 모델 · 편집 허용) | Executor는 executing-plans 실행 세션, Reviewer는 최종 리뷰어와 SDD 작업 리뷰어, Implementer는 SDD 구현자다. 계획·조사는 brainstorming이 설계 대화에서 한다 |
+| Settings → Agents → **Orchestration skills** | `/paseo` **하나만** 설치 | `/paseo`는 프로필을 읽어 `create_agent`에 옮기는 참조라 실행 스킬이 그대로 쓴다. `/paseo-handoff`·`/paseo-advisor`·`/paseo-committee`는 실행 스킬과 겹치는 절차이고 "hand off"·"second opinion" 같은 말에 자동 발동하므로 설치하지 않는다 |
+
+설계·계획 대화는 모델 선택기에서 lead provider와 큰 모델로 띄운다. 실행 세션은 Executor 프로필로 새로 연다.
+Executor가 lead provider인 이유는 실행 세션이 최종 리뷰어를 띄워야 해서 `create_agent`가 필요하기 때문이다.
+
+### 실행 역할과 프로필을 맞춘다
+
+executing-plans는 실행 세션이 직접 구현하고 끝에 리뷰어 하나를 띄운다. SDD는 작업마다 구현자 하나와 요구·품질을 함께 보는 작업 리뷰어 하나를 띄우고, 끝에 전체 리뷰어를 띄운다. 프로필의 When to use가 이 역할을 가리키게 쓴다.
+
+| 실행 역할 | 프로필 | When to use에 쓸 것 |
+|---|---|---|
+| executing-plans 실행 세션 | Executor | 승인된 계획 파일을 executing-plans로 직접 구현하고 ledger를 적는다. 설계·계획은 하지 않는다 |
+| 최종 브랜치 리뷰(두 방식 공통) | Reviewer | 브랜치 전체 diff를 계획·spec과 대조한다. 파일을 바꾸지 않는다 |
+| SDD 구현자(작업마다 새로) | Implementer | 합의된 계획의 작업 하나를 구현하고 지정된 테스트를 돌린다. 계획·리뷰는 하지 않는다 |
+| SDD 작업 리뷰어 | Reviewer | 구현 보고와 diff를 계획·spec과 대조하고 정확성·빠진 테스트·불필요한 복잡도를 본다. 파일을 바꾸지 않는다 |
+
+- **리뷰어는 구현한 코드 폴더를 본다.** 실행 세션이나 구현자의 `workspaceId`를 지정해 띄우고 diff 범위를 brief로 준다.
+- **SDD 구현자는 한 번에 하나다.** Paseo가 병렬 실행을 지원해도 SDD의 순서는 유지한다.
+- **작업 리뷰어를 중간 모델로 내릴 수 있다.** SDD 원문은 작업 리뷰어 모델을 diff 크기에 맞추라고 한다. 작은 diff가 많으면 중간 모델 Reviewer 프로필을 하나 더 둔다.
+
+### Paseo 도구를 쓰라고 말해야 한다
+
+두 실행 스킬은 "리뷰어를 dispatch하라"고만 하고 Paseo를 모른다. 요청에 Paseo를 지정하지 않으면 실행 세션은
+**provider 자체의 하위 에이전트 도구**(Claude Code의 Agent 도구 등)로 리뷰어를 만든다. 위 "두 종류의 하위 에이전트" 표의 오른쪽 열이다.
+그 경로에는 프로필·When to use·provider 정책이 적용되지 않으므로 역할별로 모델을 나눠 둔 설정이 조용히 우회된다.
+Paseo 하위 에이전트로 떴는지는 **Subagents track**에서 확인한다. 거기 없으면 provider 내부 하위 에이전트다.
 
 <Steps>
 
-1. **준비:** 도구를 켜고 프로필·실제 코드 폴더를 확인한다.
-2. **입력:** 승인한 spec·plan을 주 에이전트에게 전달한다.
-3. **실행:** SDD가 요구하는 구현자·리뷰어를 Paseo로 생성하고 brief·보고서·diff를 전달한다.
-4. **확인:** 주 에이전트가 결과·리뷰·ledger를 관리하고 다음 작업으로 이어 간다.
+1. **준비:** 위 표의 설정 넷을 확인한다. 설계·계획은 큰 모델 대화에서 승인까지 마친다.
+2. **실행 세션:** Executor 프로필로 새 에이전트를 띄우고 승인한 plan 경로를 준다. spec·ledger는 실행 세션이 plan에서 찾는다.
+3. **실행:** executing-plans가 작업을 순서대로 구현하고 ledger를 적는다. 끝에 최종 리뷰어를 Paseo로 생성하고 리뷰 패키지·plan·spec 경로를 전달한다.
+4. **확인:** 완료 알림이 오면 최종 리뷰 지적의 처리, 실행 세션이 내린 ruling, 미뤄 둔 minor를 확인한다.
 
 </Steps>
 
-```text title="승인한 계획을 Paseo로 실행하는 요청"
-승인한 docs/superpowers/plans/2026-11-05-csv-export.md를 실행해 줘.
-subagent-driven-development의 구현자·리뷰어 생성에는 Paseo 도구를 사용해 줘.
-프로필과 When to use를 조회해 설정을 고르고, 구현자와 리뷰어가 같은 실제 코드 폴더를 보게 해 줘.
-주 에이전트가 작업 배정·리뷰·ledger를 관리하고 기존 Git 정책을 따라 줘.
-사용 불가능한 위임·리뷰 경로와 남은 문제를 알려 줘.
+```text title="승인한 계획을 executing-plans로 실행하는 요청"
+승인한 docs/superpowers/plans/2026-10-24-csv-export.md를 executing-plans로 실행해 줘.
+최종 리뷰어 생성에는 Paseo 도구를 사용해 줘. provider 자체 하위 에이전트는 쓰지 마.
+프로필과 When to use를 조회해 리뷰어는 Reviewer 설정으로 띄우고, 이 세션의 실제 코드 폴더를 보게 해 줘.
+리뷰어에게는 결과만 보고하게 해 줘.
+기존 Git 정책을 따르고, 내린 ruling과 미룬 minor를 마지막 보고에 모두 적어 줘.
 ```
 
-- 경로는 예시다. **이미 승인한 실제 계획 경로**로 바꿔 쓴다.
-- SDD는 구현자를 동시에 여러 명 실행하지 않는다. Paseo가 병렬 실행을 지원해도 SDD의 절차는 유지한다.
-- SDD의 작업 리뷰 위에 같은 diff의 별도 리뷰 흐름을 중복으로 붙이지 않는다.
-- 직접 실행을 원하면 `executing-plans`로 구현하고 최종 독립 리뷰를 Paseo로 연결할 수 있다.
+SDD를 고른 경우에는 주 대화를 큰 모델로 띄우고 요청의 스킬 이름과 역할을 바꾼다.
+
+```text title="SDD를 고른 경우의 요청"
+승인한 docs/superpowers/plans/2026-10-24-csv-export.md를 subagent-driven-development로 실행해 줘.
+구현자·리뷰어 생성에는 Paseo 도구를 사용해 줘. provider 자체 하위 에이전트는 쓰지 마.
+구현자는 Implementer, 리뷰어는 Reviewer 설정으로 띄우고, 구현자와 리뷰어가 같은 실제 코드 폴더를 보게 해 줘.
+구현자·리뷰어에게는 결과만 보고하게 해 줘.
+```
+
+- 경로와 프로필 이름은 예시다. **이미 승인한 실제 계획 경로**와 자기 호스트의 프로필 이름으로 바꿔 쓴다.
+- 실행 스킬의 리뷰 위에 같은 diff의 별도 리뷰 흐름을 중복으로 붙이지 않는다.
 - 이 조합은 공식 기능을 연결한 운영 예다. **전체 결합 실행은 실측하지 않았다.**
+
+### 긴 계획에서 다른 점
+
+executing-plans 실행 세션은 작업이 쌓이면 압축된다. ledger로 자리를 찾지만 뒷부분 작업의 품질이 떨어진다.
+SDD 주 대화는 작업마다 brief 하나·보고 요약 하나·리뷰 결과만큼만 자라고, 구현의 긴 대화는 구현자 세션에 남는다.
+두 경우 모두 사용자가 말을 걸지 않아도 다음 작업으로 이어지며, 멈추는 곳은 스킬이 결정을 요구하는 지점뿐이다.
+
+- 요청에 "결과만 보고하게 해"를 넣어 리뷰어·구현자당 증가분을 줄인다.
+- 작업이 아주 많으면 계획을 나누거나 **새 세션에서 이어받는다.** 계획 파일의 체크 상태와 `.superpowers/sdd/`의 ledger로 재개하므로 끝난 작업은 건너뛴다. 작업 경계에서 자동으로 새 세션을 여는 기능은 없다.
+- 실행 전체를 Paseo worker 한 명에게 넘겨 주 대화를 비우는 방식도 가능하지만, 그 worker가 직접 실행 스킬을 돌려야 하고 결정 요청을 Subagents track에서 받게 된다. 컨텍스트가 작업 수만큼 자라는 건 같으므로 긴 계획의 해법은 아니다.
 
 ## 결과에서 확인할 것
 
+- **Subagents track이 비어 있다:** 리뷰어나 구현자가 provider 내부 하위 에이전트로 만들어졌다. 요청에 Paseo 도구 사용을 명시하고 다시 띄운다.
+- **실행 세션이 큰 모델로 돌았다:** 계획을 만든 대화에서 그대로 실행했다. Executor 프로필로 새 세션을 열어 계획 파일로 다시 요청한다.
+- **최종 리뷰어가 중간 모델로 떴다:** 요청에 Reviewer 프로필을 적지 않아 실행 세션 모델을 물려받았다. 리뷰어만 다시 띄운다.
+- **구현자가 큰 모델로 떴다:** Implementer 프로필의 When to use가 모호하거나 모델이 비어 있다. 프로필을 고치고 다음 작업부터 적용된다.
 - **도구가 안 보인다:** 서버 실행 여부와 도구 주입 설정을 구별하고, 새 세션·reload 여부를 확인한다.
 - **리뷰어가 변경을 못 본다:** 구현자와 리뷰어의 실제 경로·브랜치·diff를 대조한다.
 - **프로필을 바꿨는데 모델이 그대로다:** 이미 실행 중인 세션에는 자동 반영되지 않는다.

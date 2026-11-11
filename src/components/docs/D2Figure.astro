@@ -2,6 +2,7 @@
 /*
  * 모든 D2 펜스의 공용 런타임. MarkdownContent에서 한 번 렌더하며 MDX에서 직접 쓰지 않는다.
  * d2 integration이 <d2-figure>와 img/SVG를 생성한다. JS 없이도 원본과 본문을 읽을 수 있다.
+ * 본문 표시는 크기 상한 없는 미리보기다. integration이 단 --d2-w/--d2-h로 폭 100%·높이 80vh 안에 비율대로 줄인다(2026-11-10).
  * 확대는 원본을 옮긴 스크롤 영역과 배율 조작을 쓴다. 미니맵 사본은 별도 이미지 문서로 격리한다.
  * 일반 이미지는 starlight-image-zoom이 맡고 D2 img는 data-zoom-off로 제외한다.
  * 선/노드 움직임은 자동 감지해 재생·정지한다. 보드 자동 교차는 이 모션 UI의 대상이 아니다.
@@ -216,9 +217,12 @@
       const expand = this.querySelector<HTMLButtonElement>('[data-expand]')!;
       const motion = this.querySelector<HTMLButtonElement>('[data-motion-toggle]')!;
       motion.hidden = !hasMotion;
-      this.querySelector('.hint')!.textContent = hasMotion
+      const baseHint = hasMotion
         ? '흐름을 재생해 화살표 방향을 따라가세요'
         : hasDescription ? '노드의 설명은 마우스·키보드·터치로 확인' : '그림을 확대해 자세히 읽을 수 있습니다';
+      // 본문 미리보기 배율. CSS(폭 100%·높이 80vh)와 같은 기준이고, 눈에 띄게 줄었을 때만 배율을 앞에 붙인다.
+      const previewScale = Math.min(1, this.clientWidth / width, (window.innerHeight * 0.8) / height);
+      this.querySelector('.hint')!.textContent = previewScale < 0.85 ? `${Math.round(previewScale * 100)}% 미리보기 · ${baseHint}` : baseHint;
       const description = this.querySelector<HTMLElement>('[data-description]')!;
       const expandedDescription = this.querySelector<HTMLElement>('[data-expanded-description]')!;
       const notifyViewer = () => ownStage.dispatchEvent(new Event('d2-content-change', { bubbles: true }));
@@ -392,6 +396,11 @@
   d2-figure :is(button, a, input, [tabindex], [role='button']):focus-visible { outline: 2px solid var(--sl-color-text-accent); outline-offset: -2px; }
   d2-figure .stage { padding: .5rem; text-align: center; }
   d2-figure img, d2-figure svg[data-d2-inline] { display: block; margin: auto; max-width: 100%; height: auto; }
+  /* 본문은 미리보기다. 크기 상한 없이 폭 100%·높이 80vh 안에 비율대로 줄이고 원본 크기는 확대에서 읽는다.
+     --d2-w/--d2-h는 integration이 <d2-figure>에 단다. dialog 안 규칙이 더 구체적이라 확대에는 영향이 없다. */
+  d2-figure > :is(img, svg[data-d2-inline]), d2-figure [data-home] :is(img, svg[data-d2-inline]) {
+    width: min(100%, calc(var(--d2-w, 100000) * 1px), calc(80vh * var(--d2-w, 1) / var(--d2-h, 1)));
+  }
   d2-figure a, d2-figure [role='button'] { cursor: pointer; }
   d2-figure .description { margin: 0; padding: .75rem 1rem; min-height: 4rem; border-top: 1px solid var(--sl-color-gray-5); font-size: var(--sl-text-sm); }
   d2-figure dialog { width: min(96vw, 100rem); height: 92dvh; max-width: 96vw; max-height: 94dvh; margin: auto; padding: 0; overflow: hidden; color: var(--sl-color-text); background: var(--sl-color-bg); border: 1px solid var(--sl-color-gray-4); border-radius: .75rem; }

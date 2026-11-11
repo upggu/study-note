@@ -36,7 +36,7 @@ const { src, alt, width, height, caption, sourceHref, sourceLabel } = Astro.prop
   </div>
   <figcaption>
     <span>{caption}</span>
-    <a href={withBase(sourceHref, import.meta.env.BASE_URL)}>출처: {sourceLabel}</a>
+    <a href={withBase(sourceHref, import.meta.env.BASE_URL)} target="_blank" rel="noopener noreferrer">출처: {sourceLabel}</a>
   </figcaption>
 </figure>
 

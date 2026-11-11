@@ -170,7 +170,8 @@ export const deckCatalogSections = categories.map((category) => ({
 			slug: deck.slug,
 			href: `/${deck.slug}/`,
 			icon: deck.icon,
-			title: deck.title,
+			// 랜딩의 덱 이름은 헤더·topic 사이드바와 같은 label 하나다. 옆에 붙는 (slug)는 DeckCatalog가 그린다.
+			title: deck.label,
 			desc: deck.description,
 			tags: deck.tags.map((id) => tags.find((tag) => tag.id === id)).filter(Boolean),
 		})),

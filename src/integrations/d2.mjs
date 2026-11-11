@@ -16,23 +16,32 @@ import { prepareD2 } from '../../scripts/prepare-d2.mjs';
 //   docs/와 scripts/d2-measure.mjs가 이 이름을 전제한다.
 // - 옵션 파싱·CLI 인자 조립은 scripts/d2-measure.mjs와 공유한다. 측정값이 빌드 산출물과 같아야 한다.
 // - 펜스 안 `link: /…`의 base 처리는 앞서 실행되는 site-paths의 remark 플러그인이 맡는다.
+// - 크기 기본값은 defaultD2Options(pad·fontSize)와 elkSpacing 둘이다. 글자 크기는 d2Source가 원본 앞에 glob으로 붙이고,
+//   ELK 간격은 d2Arguments가 CLI 플래그로 넘긴다. 본문 표시는 크기 상한 없이 D2Figure가 미리보기로 줄인다.
 // - d2는 src/d2/를 cwd로 실행한다. 로고는 src/d2/icons/에 두고 펜스에서 `icon: icons/<이름>.svg`로 쓴다.
-// - 렌더된 SVG는 후처리한다: softenEdgeLabels(엣지 라벨 뒤에서도 선이 보이게)와
-//   matchPageBackground(D2 배경색을 사이트 테마의 페이지 배경에 맞춰 그림이 흰 상자로 뜨지 않게).
+// - 렌더된 SVG는 matchPageBackground로 후처리한다(D2 배경색을 사이트 테마의 페이지 배경에 맞춰 그림이 흰 상자로 뜨지 않게).
+//   엣지 라벨은 D2 기본대로 뒤의 선을 가린다. 2026-10-13~11-10에 mask를 떼고 반투명 배경을 깔아 선이 비치게 했으나
+//   취소선처럼 보여 되돌렸다(softenEdgeLabels 삭제). 다시 시도하지 않는다.
 
 export const defaultD2Options = Object.freeze({
 	layout: 'elk',
-	pad: 40,
+	// 2026-11-10: 그림이 본문보다 커 보여 pad 40→24, 글자 16→13으로 낮췄다. 배경은 docs/d2-authoring.md "레이아웃과 크기".
+	pad: 24,
 	sketch: true,
 	// 사이트 테마(Dracula/Alucard)에 맞춘 값. 라이트 7 Aubergine(보라 accent), 다크 200 Dark Mauve.
 	theme: '7',
 	darkTheme: '200',
+	// 노드 라벨 px. 엣지 라벨은 1px 작다. 0이면 D2 기본(16)을 그대로 둔다. 펜스 `fontSize=`로 그림마다 바꾼다.
+	fontSize: 13,
 });
+
+/** ELK 간격(px). D2 기본은 층 사이 70·컨테이너 안쪽 50·엣지-노드 40이라 세로로 길어져 줄였다. layout=elk 펜스에만 붙는다. */
+export const elkSpacing = Object.freeze({ nodeNodeBetweenLayers: 40, padding: 30, edgeNodeBetweenLayers: 25 });
 
 const attributePattern =
 	/(?<key>[^\s"'=]+)=(?:(?<plain>[^\s"']+)|'(?<single>[^']+)'|"(?<double>[^"]+)")|(?<truthy>[^\s"'=]+)/g;
 const knownKeys = new Set([
-	'title', 'layout', 'pad', 'sketch', 'theme', 'darkTheme', 'target', 'animateInterval', 'appendix', 'inline',
+	'title', 'layout', 'pad', 'sketch', 'theme', 'darkTheme', 'target', 'animateInterval', 'appendix', 'inline', 'fontSize',
 ]);
 
 /** ```d2 layout=elk pad=40 title="…" 형태의 펜스 meta를 옵션으로 바꾼다. 모르는 키는 오타로 보고 거부한다. */
@@ -45,7 +54,7 @@ export function parseD2Attributes(meta, defaults = defaultD2Options) {
 		if (!knownKeys.has(key)) {
 			throw new Error(`[D2 펜스 속성] 알 수 없는 속성 '${key}'입니다. 허용: ${[...knownKeys].join(', ')}`);
 		}
-		if (key === 'pad') options.pad = Number(value);
+		if (key === 'pad' || key === 'fontSize') options[key] = Number(value);
 		else if (key === 'sketch' || key === 'appendix' || key === 'inline') options[key] = value === 'true';
 		else if (key === 'target') options.target = value === 'root' ? '' : value;
 		else if (key === 'darkTheme') options.darkTheme = value === 'false' ? false : value;
@@ -62,12 +71,30 @@ export function d2Arguments(options, outputPath) {
 		`--sketch=${options.sketch}`,
 		`--pad=${options.pad}`,
 	];
+	if (options.layout === 'elk') {
+		const { nodeNodeBetweenLayers, padding, edgeNodeBetweenLayers } = elkSpacing;
+		args.push(
+			`--elk-nodeNodeBetweenLayers=${nodeNodeBetweenLayers}`,
+			`--elk-padding=[top=${padding},left=${padding},bottom=${padding},right=${padding}]`,
+			`--elk-edgeNodeBetweenLayers=${edgeNodeBetweenLayers}`,
+		);
+	}
 	if (options.darkTheme !== false && options.darkTheme !== 'false') args.push(`--dark-theme=${options.darkTheme}`);
 	if (options.animateInterval) args.push(`--animate-interval=${options.animateInterval}`);
 	if (options.target !== undefined) args.push(`--target=${options.target}`);
 	if (options.appendix) args.push('--force-appendix');
 	args.push('-', outputPath);
 	return args;
+}
+
+/**
+ * 펜스 원본 앞에 전역 글자 크기 glob을 붙인다. glob은 뒤에 선언되는 객체와 import·보드에도 적용되고,
+ * 작성자가 적은 명시적 `style.font-size`가 뒤에 오므로 이긴다. fontSize가 0이면 원본 그대로다.
+ */
+export function d2Source(source, options) {
+	const size = Number(options.fontSize);
+	if (!size) return source;
+	return `**.style.font-size: ${size}\n(** -> **)[*].style.font-size: ${Math.max(size - 1, 1)}\n${source}`;
 }
 
 /** D2 SVG의 viewBox에서 크기를 읽는다. */
@@ -97,8 +124,10 @@ export function figureHtml(svg, { options, src }) {
 	const motion = !options.animateInterval && /<(?:path|g)\b[^>]*(?:class="[^"]*\banimated-|style="[^"]*\banimation\s*:)/.test(svg);
 	const interactive = !options.appendix && /<(?:a\s|title[\s>])/.test(svg);
 	const inline = options.inline || motion || interactive;
-	const content = inline ? inlineSvgHtml(svg, { title: options.title }) : imgHtml({ src, title: options.title, ...svgSize(svg) });
-	return `<d2-figure role="figure" aria-label="${escapeAttribute(options.title)}"${motion ? ' data-motion' : ''}>${content}</d2-figure>`;
+	const { width, height } = svgSize(svg);
+	const content = inline ? inlineSvgHtml(svg, { title: options.title }) : imgHtml({ src, title: options.title, width, height });
+	// --d2-w/--d2-h: 본문 미리보기 크기 규칙(D2Figure CSS)이 폭 100%·높이 80vh 안에 비율대로 맞추는 데 쓴다.
+	return `<d2-figure role="figure" aria-label="${escapeAttribute(options.title)}" style="--d2-w:${width};--d2-h:${height}"${motion ? ' data-motion' : ''}>${content}</d2-figure>`;
 }
 
 /**
@@ -116,31 +145,6 @@ export function inlineSvgHtml(svg, { title }) {
 	const rootTag = root[0].replace(/\s*\/?>$/, '');
 	const attributes = ` width="${width}" height="${height}" data-d2-inline=""`;
 	return `${withoutProlog.slice(0, root.index)}${rootTag}${attributes}><title>${escapeText(title)}</title>${withoutProlog.slice(root.index + root[0].length)}`;
-}
-
-/**
- * 엣지 라벨 뒤에서 선이 보이게 한다.
- * D2는 연결선 라벨 자리를 SVG mask로 잘라내므로 라벨이 선을 끊어 보인다(옵션으로 끌 수 없다).
- * mask의 검은 사각형이 곧 라벨 상자이므로, mask를 떼고 그 상자 좌표에 반투명 배경 사각형을
- * 라벨 텍스트 앞에 넣는다. 배경색은 D2의 배경 클래스(fill-N7)를 써서 다크 테마를 그대로 따른다.
- * 브라우저 비교(2026-10-13): mask 제거만 하면 글자 사이로 선이 지나가고, 글자 테두리(halo)는
- * 단어 사이로 선이 토막나 보였다. 60% 배경이 선의 연속성과 가독성을 같이 지켰다.
- */
-export function softenEdgeLabels(svg, opacity = 0.6) {
-	const mask = svg.match(/<mask\b[^>]*>(.*?)<\/mask>/s);
-	if (!mask) return svg;
-	const boxes = [...mask[1].matchAll(/<rect x="([-\d.]+)" y="([-\d.]+)" width="([-\d.]+)" height="([-\d.]+)" fill="black"/g)]
-		.map(([, x, y, width, height]) => ({ x: Number(x), y: Number(y), width: Number(width), height: Number(height) }));
-	if (boxes.length === 0) return svg;
-	const unmasked = svg.replace(/\smask="url\(#[^)]*\)"/g, '');
-	return unmasked.replace(/<text\b[^>]*>/g, (tag) => {
-		const x = Number(tag.match(/\sx="([-\d.]+)"/)?.[1]);
-		const y = Number(tag.match(/\sy="([-\d.]+)"/)?.[1]);
-		if (Number.isNaN(x) || Number.isNaN(y)) return tag;
-		const box = boxes.find((candidate) => x >= candidate.x && x <= candidate.x + candidate.width && y >= candidate.y && y <= candidate.y + candidate.height);
-		if (!box) return tag;
-		return `<rect x="${box.x}" y="${box.y}" width="${box.width}" height="${box.height}" rx="3" class="fill-N7" fill-opacity="${opacity}" />${tag}`;
-	});
 }
 
 /**
@@ -165,7 +169,7 @@ export function matchPageBackground(svg, background = pageBackground) {
 
 /** 렌더 직후 SVG 파일에 적용하는 후처리. <img>·inline 양쪽과 d2-measure의 PNG 미리보기가 같은 결과를 본다. */
 export function postprocessD2Svg(svg, { background = pageBackground } = {}) {
-	return matchPageBackground(softenEdgeLabels(svg), background);
+	return matchPageBackground(svg, background);
 }
 
 /** D2를 stdin 입력으로 실행한다. 실패하면 stderr를 메시지로 던진다. */
@@ -188,7 +192,7 @@ function runD2(binary, args, source, cwd) {
 /** 펜스 하나를 D2로 변환해 후처리까지 마친 SVG를 outputPath에 저장하고 그 문자열을 돌려준다. */
 export async function renderD2({ binary, source, options, outputPath, cwd, background }) {
 	await fs.mkdir(path.dirname(outputPath), { recursive: true });
-	await runD2(binary, d2Arguments(options, outputPath), source, cwd);
+	await runD2(binary, d2Arguments(options, outputPath), d2Source(source, options), cwd);
 	const svg = postprocessD2Svg(await fs.readFile(outputPath, 'utf8'), { background });
 	await fs.writeFile(outputPath, svg);
 	return svg;

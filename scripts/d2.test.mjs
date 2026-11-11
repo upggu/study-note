@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { d2Arguments, figureHtml, imgHtml, inlineSvgHtml, matchPageBackground, parseD2Attributes, softenEdgeLabels, svgSize } from '../src/integrations/d2.mjs';
+import { d2Arguments, d2Source, figureHtml, imgHtml, inlineSvgHtml, matchPageBackground, parseD2Attributes, svgSize } from '../src/integrations/d2.mjs';
 
 test('fence attributes: defaults, overrides, quoting, truthy flags, target root', () => {
 	assert.deepEqual(parseD2Attributes(undefined), {
-		layout: 'elk', pad: 40, sketch: true, theme: '7', darkTheme: '200', title: 'Diagram', inline: false, appendix: false,
+		layout: 'elk', pad: 24, sketch: true, theme: '7', darkTheme: '200', fontSize: 13, title: 'Diagram', inline: false, appendix: false,
 	});
-	const options = parseD2Attributes(`layout=tala pad=20 title="빌드 흐름 (요약)" inline darkTheme=false target=root appendix=true`);
+	const options = parseD2Attributes(`layout=tala pad=20 fontSize=16 title="빌드 흐름 (요약)" inline darkTheme=false target=root appendix=true`);
 	assert.equal(options.layout, 'tala');
 	assert.equal(options.pad, 20);
+	assert.equal(options.fontSize, 16);
 	assert.equal(options.title, '빌드 흐름 (요약)');
 	assert.equal(options.inline, true);
 	assert.equal(options.darkTheme, false);
@@ -18,15 +19,24 @@ test('fence attributes: defaults, overrides, quoting, truthy flags, target root'
 	assert.throws(() => parseD2Attributes('titel="오타"'), /알 수 없는 속성 'titel'/);
 });
 
-test('CLI arguments mirror the fence options and end with stdin and the output path', () => {
+test('CLI arguments mirror the fence options, add ELK spacing only for elk, and end with stdin and the output path', () => {
 	assert.deepEqual(d2Arguments(parseD2Attributes('pad=40'), '/tmp/out.svg'), [
-		'--layout=elk', '--theme=7', '--sketch=true', '--pad=40', '--dark-theme=200', '-', '/tmp/out.svg',
+		'--layout=elk', '--theme=7', '--sketch=true', '--pad=40',
+		'--elk-nodeNodeBetweenLayers=40', '--elk-padding=[top=30,left=30,bottom=30,right=30]', '--elk-edgeNodeBetweenLayers=25',
+		'--dark-theme=200', '-', '/tmp/out.svg',
 	]);
+	assert.ok(!d2Arguments(parseD2Attributes('layout=tala'), 'o.svg').some((argument) => argument.startsWith('--elk-')));
 	const args = d2Arguments(parseD2Attributes('darkTheme=false animateInterval=1200 target=steps.2 appendix=true'), 'o.svg');
 	assert.ok(!args.some((argument) => argument.startsWith('--dark-theme')));
 	assert.ok(args.includes('--animate-interval=1200'));
 	assert.ok(args.includes('--target=steps.2'));
 	assert.ok(args.includes('--force-appendix'));
+});
+
+test('the global font size is prepended as globs so the author\'s explicit font-size still wins; 0 disables it', () => {
+	assert.equal(d2Source('a -> b', parseD2Attributes('')), '**.style.font-size: 13\n(** -> **)[*].style.font-size: 12\na -> b');
+	assert.equal(d2Source('a -> b', parseD2Attributes('fontSize=16')), '**.style.font-size: 16\n(** -> **)[*].style.font-size: 15\na -> b');
+	assert.equal(d2Source('a -> b', parseD2Attributes('fontSize=0')), 'a -> b');
 });
 
 const sample = `<?xml version="1.0" encoding="utf-8"?>
@@ -42,7 +52,7 @@ test('img output carries alt, size and the base-prefixed path', () => {
 
 test('all D2 figures get the dedicated wrapper; static images stay lazy and opt out of image zoom', () => {
 	const html = figureHtml(sample, { options: parseD2Attributes('title="정적 그림"'), src: '/team/notes/d2/docs/a/b-0.svg' });
-	assert.ok(html.startsWith('<d2-figure role="figure" aria-label="정적 그림"><img data-zoom-off'));
+	assert.ok(html.startsWith('<d2-figure role="figure" aria-label="정적 그림" style="--d2-w:580;--d2-h:418"><img data-zoom-off'));
 	assert.ok(html.includes('loading="lazy"'));
 	assert.ok(html.includes('src="/team/notes/d2/docs/a/b-0.svg"'));
 	assert.ok(html.endsWith('</d2-figure>'));
@@ -69,22 +79,6 @@ test('inline output drops the XML prolog, sizes and marks the root, and adds the
 	assert.ok(html.startsWith('<svg xmlns="http://www.w3.org/2000/svg" d2Version="v0.9.0" preserveAspectRatio="xMinYMin meet" viewBox="0 0 580 418" width="580" height="418" data-d2-inline=""><title>고르는 &lt;기준&gt;</title><svg class="d2-1 d2-svg"'));
 	assert.ok(html.endsWith('</svg></svg>'));
 	assert.ok(!html.includes('<?xml'));
-});
-
-test('edge labels: the mask is removed and a translucent theme-colored box is placed behind each label', () => {
-	const svg = [
-		'<svg viewBox="0 0 400 100"><svg class="d2-1 d2-svg"><mask id="d2-1" maskUnits="userSpaceOnUse" x="0" y="0" width="400" height="100">',
-		'<rect x="0" y="0" width="400" height="100" fill="white"></rect><rect x="150" y="40" width="100" height="21" fill="black"></rect></mask>',
-		'<text x="50" y="30" class="text fill-N1">shape label</text>',
-		'<g><path d="M 0 50 L 400 50" class="connection" mask="url(#d2-1)" /><text x="200" y="55" class="text-italic fill-N2">edge label</text></g>',
-		'</svg></svg>',
-	].join('');
-	const out = softenEdgeLabels(svg);
-	assert.ok(!out.includes('mask="url('));
-	assert.ok(out.includes('<rect x="150" y="40" width="100" height="21" rx="3" class="fill-N7" fill-opacity="0.6" /><text x="200" y="55"'));
-	assert.ok(out.includes('<text x="50" y="30" class="text fill-N1">'));
-	assert.equal(out.match(/fill-opacity/g).length, 1);
-	assert.equal(softenEdgeLabels('<svg><text x="1" y="2">no mask</text></svg>'), '<svg><text x="1" y="2">no mask</text></svg>');
 });
 
 test('diagram background follows the page: first fill-N7 rule is light, the one in the dark media block is dark', () => {
