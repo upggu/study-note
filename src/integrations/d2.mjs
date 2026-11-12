@@ -18,7 +18,8 @@ import { prepareD2 } from '../../scripts/prepare-d2.mjs';
 // - 펜스 안 `link: /…`의 base 처리는 앞서 실행되는 site-paths의 remark 플러그인이 맡는다.
 // - 크기 기본값은 defaultD2Options(pad·fontSize)와 elkSpacing 둘이다. 글자 크기는 d2Source가 원본 앞에 glob으로 붙이고,
 //   ELK 간격은 d2Arguments가 CLI 플래그로 넘긴다. 본문 표시는 크기 상한 없이 D2Figure가 미리보기로 줄인다.
-// - d2는 src/d2/를 cwd로 실행한다. 로고는 src/d2/icons/에 두고 펜스에서 `icon: icons/<이름>.svg`로 쓴다.
+// - 덱 원본은 각 덱의 _d2/에 두고 펜스에서 `...@_d2/<이름>`으로 import한다. d2Source가 MDX 위치 기준으로 푼다.
+// - 공용 로고의 `icon: icons/<이름>.svg`를 유지하려고 CLI cwd는 src/d2/로 둔다.
 // - 렌더된 SVG는 matchPageBackground로 후처리한다(D2 배경색을 사이트 테마의 페이지 배경에 맞춰 그림이 흰 상자로 뜨지 않게).
 //   엣지 라벨은 D2 기본대로 뒤의 선을 가린다. 2026-10-13~11-10에 mask를 떼고 반투명 배경을 깔아 선이 비치게 했으나
 //   취소선처럼 보여 되돌렸다(softenEdgeLabels 삭제). 다시 시도하지 않는다.
@@ -89,9 +90,16 @@ export function d2Arguments(options, outputPath) {
 
 /**
  * 펜스 원본 앞에 전역 글자 크기 glob을 붙인다. glob은 뒤에 선언되는 객체와 import·보드에도 적용되고,
- * 작성자가 적은 명시적 `style.font-size`가 뒤에 오므로 이긴다. fontSize가 0이면 원본 그대로다.
+ * 작성자가 적은 명시적 `style.font-size`가 뒤에 오므로 이긴다. fontSize가 0이면 glob을 붙이지 않는다.
+ * 덱의 `_d2/` import는 MDX 위치 기준 경로를 CLI cwd 기준으로 바꾼다. 공용 icons/ 경로는 건드리지 않는다.
  */
-export function d2Source(source, options) {
+export function d2Source(source, options, { root, filePath } = {}) {
+	if (root && filePath) {
+		source = source.replace(/^(\s*\.\.\.@)(_d2\/[^\s;{}]+)/gm, (_, prefix, imported) => {
+			const resolved = path.resolve(path.dirname(filePath), imported);
+			return prefix + path.relative(d2WorkingDirectory(root), resolved).split(path.sep).join('/');
+		});
+	}
 	const size = Number(options.fontSize);
 	if (!size) return source;
 	return `**.style.font-size: ${size}\n(** -> **)[*].style.font-size: ${Math.max(size - 1, 1)}\n${source}`;
@@ -190,15 +198,15 @@ function runD2(binary, args, source, cwd) {
 }
 
 /** 펜스 하나를 D2로 변환해 후처리까지 마친 SVG를 outputPath에 저장하고 그 문자열을 돌려준다. */
-export async function renderD2({ binary, source, options, outputPath, cwd, background }) {
+export async function renderD2({ binary, source, options, outputPath, cwd, background, root, filePath }) {
 	await fs.mkdir(path.dirname(outputPath), { recursive: true });
-	await runD2(binary, d2Arguments(options, outputPath), d2Source(source, options), cwd);
+	await runD2(binary, d2Arguments(options, outputPath), d2Source(source, options, { root, filePath }), cwd);
 	const svg = postprocessD2Svg(await fs.readFile(outputPath, 'utf8'), { background });
 	await fs.writeFile(outputPath, svg);
 	return svg;
 }
 
-/** D2 실행 디렉터리. 펜스의 `icon: icons/<이름>.svg`와 `...@<파일>` import가 이 폴더 기준으로 풀린다. */
+/** 공용 로고용 CLI 실행 디렉터리. 덱 원본의 import는 d2Source에서 MDX 위치 기준으로 푼다. */
 export function d2WorkingDirectory(root) {
 	return path.join(root, 'src', 'd2');
 }
@@ -232,7 +240,7 @@ export function remarkD2({ binary, base, publicDir, root, outputDir = 'd2', defa
 				const outputPath = path.join(publicDir, outputDir, relativeOutput);
 				let svg;
 				try {
-					svg = await renderD2({ binary, source: node.value, options, outputPath, cwd: d2WorkingDirectory(root), background });
+					svg = await renderD2({ binary, source: node.value, options, outputPath, cwd: d2WorkingDirectory(root), background, root, filePath });
 				} catch (error) {
 					throw new Error(`[D2 변환 실패] ${location}\n${error.message}`, { cause: error });
 				}

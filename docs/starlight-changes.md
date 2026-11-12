@@ -111,11 +111,13 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
   찾아 감싼다. 설명은 data 속성과 키보드 초점으로도 접근할 수 있게 만든다.
   `custom.css`는 인라인 svg를 본문 폭에 맞추고 `site-paths`는 펜스의 `link: /…`에 base를 붙인다.
 - 단계 탐색은 D2 `steps`/`scenarios` 원본의 보드를 `target`으로 따로 그려 Starlight `Tabs`로 선택한다.
-  `src/d2/request-response.d2`와 Starlight D2 페이지가 예제다. 상태는 탭 밖 표에도 남긴다.
+  `src/content/docs/starlight/_d2/request-response.d2`와 Starlight D2 페이지가 예제다. 상태는 탭 밖 표에도 남긴다.
   공식 `animateInterval` 자동 교차를 단계 선택·상태 설명의 자동 대체로 취급하지 않는다.
 - integration은 렌더된 SVG의 배경색만 후처리한다(`matchPageBackground`). 엣지 라벨 뒤 선을 비치게 하던
   `softenEdgeLabels`는 취소선처럼 보여 2026-11-10에 삭제했고 D2 기본(라벨이 선을 가림)으로 둔다. d2는 `src/d2/`를 cwd로 실행하며, 로고는
-  `src/d2/icons/`에 두고 펜스에서 `icon: icons/<이름>.svg`로 쓴다(규칙은 d2-authoring.md).
+  `src/d2/icons/`에 두고 펜스에서 `icon: icons/<이름>.svg`로 쓴다. 덱 원본은 각 덱 `_d2/`에 두며,
+  `d2Source`가 펜스의 `...@_d2/<이름>`을 MDX 위치 기준에서 CLI cwd 기준 경로로 바꾼다.
+  빌드·측정 도구가 이 함수를 공유한다(규칙은 d2-authoring.md).
 - 2026-10-13까지는 [astro-d2](https://astro-d2.vercel.app/)를 썼다. 이 레포가 쓰는 기능은 펜스 속성 몇 개와
   `<img>`/inline 출력뿐인데, astro-d2 0.14는 쓰지 않는 D2.js WebAssembly(`@d2lang/d2`, 92MB)를 빌드마다
   정적으로 로드하고, `satteri@0.9` 요구로 Starlight 0.42와 호이스팅 충돌을 일으켰으며(루트 `satteri`가

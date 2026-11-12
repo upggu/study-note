@@ -98,7 +98,7 @@ try {
 				const child = spawnSync(d2Binary, d2Arguments(options, svgPath), {
 					cwd: d2WorkingDirectory(repositoryRoot),
 					encoding: 'utf8',
-					input: d2Source(block.body, options),
+					input: d2Source(block.body, options, { root: repositoryRoot, filePath: absolutePath }),
 				});
 				if (child.error) throw child.error;
 				if (child.status !== 0) throw new Error(child.stderr?.trim() || `D2 종료 코드 ${child.status}`);

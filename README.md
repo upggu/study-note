@@ -59,6 +59,7 @@ src/content/docs/
   starlight/ …                 # 덱 하나 = 디렉터리 하나 = topic 하나
     _deck.mjs                 #   이 덱의 메타데이터·사이드바 목록·DeckMap
     _baseline.md              #   기준 버전·서술 규칙·범위 경계
+    _d2/                      #   이 덱이 사용하는 분리된 D2 원본 — 덱과 함께 복사
     index.mdx                 #   덱 개요 페이지
     intro.mdx …               #   번호 없는 본문 페이지 — 제목·설명은 frontmatter
 src/components/               # layout / docs / demos 역할별 컴포넌트

@@ -82,8 +82,12 @@ MDX에서 `D2Figure`를 import하거나 `<Zoom>`·카드 같은 래퍼를 씌우
   정적 개념도에서 손그림이 이해를 돕는다면 기본값을 유지한다.
 - `target=`은 [단계 보드](#단계-보드--steps와-수동-탐색), `appendix=`는 [툴팁과 링크](#툴팁과-링크)에서 쓴다.
   `animateInterval=`은 허용 키지만 현재 쓰지 않는다. 쓰려면 정지·수동 선택·정적 대체를 갖춘 UI가 먼저다.
-- 외부 `.d2`를 끌어오는 `src=` 속성은 **없다.** 여러 펜스가 같은 원본을 나눠 쓰면 `src/d2/<이름>.d2`에 두고
-  펜스 첫 줄에 `...@<이름>`으로 import한다. d2가 `src/d2/`를 작업 디렉터리로 실행되므로 그 폴더 기준 상대 경로다.
+- 외부 `.d2`를 끌어오는 `src=` 속성은 **없다.** 여러 펜스가 같은 원본을 나눠 쓰면 해당 덱의
+  `src/content/docs/<덱>/_d2/<이름>.d2`에 두고 펜스 첫 줄에 `...@_d2/<이름>`으로 import한다.
+  같은 페이지의 단계별 그림도 이 규칙을 따른다. 덱 폴더를 복사할 때 그림 원본도 함께 옮기기 위해서다.
+- `_d2/` 참조는 **MDX 파일이 있는 폴더 기준**이다. 빌드와 `d2-measure`가 같은 경로 해석을 쓴다.
+  덱 원본을 전역 `src/d2/`나 다른 덱에 두지 않는다. 여러 덱에서 같은 그림이 필요하면 각 덱이 필요한 원본을 소유한다.
+  `.d2` 내부의 추가 import·이미지 상대 경로는 그 `.d2` 파일 기준이다.
 
 ## 강조 — 핵심 컴포넌트와 흐름을 두드러지게
 
@@ -187,7 +191,7 @@ diagram -> picture: 실제 모양이 궁금하면
 D2 보드는 그림의 변형을 정의한다. **탭·이전/다음·재생 버튼은 D2 기본 기능이 아니다.**
 소수 단계를 비교할 때는 `Tabs`를 쓴다. 두 단계 예제와 상태 표는
 [Starlight D2 페이지](../src/content/docs/starlight/d2.mdx), 공통 원본은
-[request-response.d2](../src/d2/request-response.d2)다.
+[request-response.d2](../src/content/docs/starlight/_d2/request-response.d2)다.
 
 ````mdx
 import { Tabs, TabItem } from '@astrojs/starlight/components';
@@ -196,7 +200,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 <TabItem label="요청 도착">
 
 ```d2 sketch=false target=root title="GET 요청은 서버에 도착했지만 브라우저에는 문서가 없다"
-...@request-response
+...@_d2/request-response
 ```
 
 브라우저는 응답을 기다리고 서버는 원본 문서를 보유한다.
@@ -205,7 +209,7 @@ import { Tabs, TabItem } from '@astrojs/starlight/components';
 <TabItem label="응답 도착">
 
 ```d2 sketch=false target=steps.response title="HTML 응답이 브라우저에 도착하고 서버의 원본은 유지된다"
-...@request-response
+...@_d2/request-response
 ```
 
 브라우저도 문서를 받았고 서버의 원본은 그대로 남는다.

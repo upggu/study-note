@@ -1,6 +1,47 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { d2Arguments, d2Source, figureHtml, imgHtml, inlineSvgHtml, matchPageBackground, parseD2Attributes, svgSize } from '../src/integrations/d2.mjs';
+import fs from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import { prepareD2 } from './prepare-d2.mjs';
+import { d2Arguments, d2Source, d2WorkingDirectory, figureHtml, imgHtml, inlineSvgHtml, matchPageBackground, parseD2Attributes, remarkD2, renderD2, svgSize } from '../src/integrations/d2.mjs';
+
+test('deck-local imports render independently in build and measurement, including nested sources and shared icons', async () => {
+	const root = await fs.mkdtemp(path.join(os.tmpdir(), 'd2 decks '));
+	try {
+		const binary = path.join(await prepareD2(), 'd2');
+		const icons = path.join(root, 'src/d2/icons');
+		await fs.mkdir(icons, { recursive: true });
+		await fs.writeFile(path.join(icons, 'test.svg'), '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>');
+		for (const [deck, label, fontSize] of [['first', 'Alpha', 0], ['second', 'Beta', 13]]) {
+			const directory = path.join(root, 'src/content/docs', deck);
+			await fs.mkdir(path.join(directory, '_d2'), { recursive: true });
+			await fs.writeFile(path.join(directory, '_d2/diagram.d2'), '...@nested\n');
+			await fs.writeFile(path.join(directory, '_d2/nested.d2'), `a: ${label}\na -> b\n`);
+			const filePath = path.join(directory, 'page.mdx');
+			const source = '...@_d2/diagram\na.icon: icons/test.svg';
+			const meta = `sketch=false fontSize=${fontSize}`;
+			const tree = { type: 'root', children: [{ type: 'code', lang: 'd2', meta, value: source }] };
+			await remarkD2({ binary, base: '/', publicDir: path.join(root, 'public'), root })(tree, { history: [filePath] });
+			assert.equal(tree.children[0].type, 'html');
+			const built = await fs.readFile(path.join(root, 'public/d2/docs', deck, 'page-0.svg'), 'utf8');
+			assert.ok(built.includes(label));
+			// d2-measure uses these same source/options/cwd helpers.
+			const measured = await renderD2({
+				binary, source: d2Source(source, parseD2Attributes('fontSize=0'), { root, filePath }),
+				options: parseD2Attributes(meta), outputPath: path.join(root, 'measured.svg'), cwd: d2WorkingDirectory(root),
+			});
+			assert.deepEqual(svgSize(measured), svgSize(built));
+		}
+		const missing = { type: 'root', children: [{ type: 'code', lang: 'd2', value: '...@_d2/missing' }] };
+		await assert.rejects(
+			remarkD2({ binary, base: '/', publicDir: path.join(root, 'public'), root })(missing, { history: [path.join(root, 'src/content/docs/first/missing.mdx')] }),
+			/\[D2 변환 실패\].*missing\.mdx/,
+		);
+	} finally {
+		await fs.rm(root, { recursive: true, force: true });
+	}
+});
 
 test('fence attributes: defaults, overrides, quoting, truthy flags, target root', () => {
 	assert.deepEqual(parseD2Attributes(undefined), {
