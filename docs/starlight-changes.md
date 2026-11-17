@@ -47,7 +47,8 @@ index의 구성도는 `<DeckMap deck="…" />`가 같은 폴더의 `map`을 읽�
 사이드바 상단 덱 전환 드롭다운은 `Sidebar.astro`에서 **최근 수정일 내림차순**으로 정렬한다.
 `src/data/deck-updated-at.ts`가 랜딩과 공통으로 덱 안 문서의 가장 최근 Git 커밋 시각을 계산한다.
 수정 시각이 같으면 `_deck.mjs`의 `navOrder` 순서를 유지하고, Git 이력이 없는 덱은 마지막에 둔다.
-정렬은 빌드 때 반영되며, dev에서는 다음 페이지 요청 때 새 커밋을 반영한다.
+정렬은 빌드 때 반영되며, dev에서는 요청마다 Git HEAD만 확인하고 HEAD가 바뀔 때 날짜를 다시 계산한다.
+같은 HEAD의 요청은 계산 중인 Promise까지 공유해 문서별 Git 조회를 반복하지 않는다.
 
 새 파일 추가·이름 변경을 실행 중 dev 서버가 즉시 config 변경으로 인식하지 못할 수 있으므로 이때는
 서버를 재시작한다. 빌드와 `npm run check`는 매번 전체 source tree를 새로 읽는다.
@@ -275,8 +276,8 @@ Starlight가 페이지의 마지막 업데이트를 구할 때 쓰는
 
 기댄 내부 동작 (0.41.x 기준으로 확인):
 
-- dev에서는 파일별 `git log`, build에서는 Starlight가 빌드 시작 시 한 번 수집해 인라인한 Git
-  이력을 사용한다
+- dev에서는 처음 요청과 Git HEAD 변경 후에만 파일별 `git log`로 덱 수정일을 계산하고 캐시한다.
+  build에서는 Starlight가 빌드 시작 시 한 번 수집해 인라인한 Git 이력을 사용한다
 - Cloudflare Pages의 얇은 checkout은 모든 문서를 HEAD에서 추가된 것처럼 보이게 한다.
   `npm run build`의 `prebuild`가 `CF_PAGES=1`이고 저장소가 얇은 경우에만 `git fetch --unshallow`로
   전체 이력을 확보한 뒤 Starlight 빌드를 시작한다

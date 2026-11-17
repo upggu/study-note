@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { getCollection } from 'astro:content';
 import { getNewestCommitDate } from 'virtual:starlight/git-info';
 
@@ -21,9 +23,29 @@ async function collectDeckUpdatedAt() {
 }
 
 let buildDates: ReturnType<typeof collectDeckUpdatedAt> | undefined;
+let devDates: { head: string | undefined; dates: ReturnType<typeof collectDeckUpdatedAt> } | undefined;
+
+function getHead() {
+	try {
+		return execFileSync('git', ['rev-parse', 'HEAD'], {
+			cwd: fileURLToPath(new URL('../../', import.meta.url)),
+			encoding: 'utf8',
+			stdio: ['ignore', 'pipe', 'ignore'],
+		}).trim();
+	} catch {
+		// Git 이력이 없는 환경에서도 페이지를 렌더한다.
+		return undefined;
+	}
+}
 
 export function getDeckUpdatedAt() {
-	// 빌드는 모든 페이지에서 재사용하고, dev는 새 커밋을 다음 요청에 반영한다.
-	if (import.meta.env.DEV) return collectDeckUpdatedAt();
+	// dev도 같은 HEAD에서는 재사용한다. Promise를 저장해 동시 요청도 계산을 공유한다.
+	if (import.meta.env.DEV) {
+		const head = getHead();
+		if (!devDates || devDates.head !== head) {
+			devDates = { head, dates: collectDeckUpdatedAt() };
+		}
+		return devDates.dates;
+	}
 	return (buildDates ??= collectDeckUpdatedAt());
 }
